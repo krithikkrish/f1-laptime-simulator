@@ -36,7 +36,8 @@ import {
   Cpu,
   Disc,
   Compass,
-  CheckCircle2
+  CheckCircle2,
+  Flame
 } from 'lucide-react';
 import './index.css';
 
@@ -298,6 +299,58 @@ export default function App() {
   const liveBrake = Math.round(telem?.brake?.[currentIdx] ?? 0);
   const liveMguKw = Math.round(telem?.p_mguk_kw?.[currentIdx] ?? 0);
   const isAeroXMode = liveSpeedKmh > 260 && liveThrottle > 90;
+  const livePoleSpeedKmh = telem?.speed_2025?.[currentIdx] ?? null;
+  const liveSpeedDelta = livePoleSpeedKmh !== null ? Math.round(liveSpeedKmh - livePoleSpeedKmh) : null;
+
+  // Track Phase Inspector logic
+  const currentTrackPhase = useMemo(() => {
+    if (!simData?.track?.length_m) return { name: 'Starting Grid', type: 'straight', sector: 'Sector 1' };
+    
+    const pct = (scrubDist / trackLen) * 100;
+    let sector = 'Sector 1';
+    if (pct > 66.6) sector = 'Sector 3';
+    else if (pct > 33.3) sector = 'Sector 2';
+    
+    if (simData.sectors && simData.sectors.length >= 3) {
+      if (scrubDist < simData.sectors[0].end) sector = simData.sectors[0].name;
+      else if (scrubDist < simData.sectors[1].end) sector = simData.sectors[1].name;
+      else sector = simData.sectors[2].name;
+    }
+
+    let name = 'Corner Acceleration Phase';
+    let type = 'accel';
+
+    if (liveBrake > 15) {
+      name = 'Heavy Braking & Energy Regeneration';
+      type = 'brake';
+    } else if (isAeroXMode) {
+      name = 'Top-Speed Straightaway (X-Mode Low Drag)';
+      type = 'straight';
+    } else if (liveSpeedKmh < 165 && liveThrottle < 85) {
+      name = 'Technical Corner Apex (Z-Mode Downforce)';
+      type = 'corner';
+    } else if (liveThrottle > 75) {
+      name = 'Corner Exit +470 HP Electric Torque';
+      type = 'boost';
+    }
+
+    return { name, type, sector };
+  }, [scrubDist, trackLen, liveBrake, isAeroXMode, liveSpeedKmh, liveThrottle, simData]);
+
+  // Dynamic Multi-Color Speed Ribbon Gradient across the entire circuit
+  const speedRibbonGradient = useMemo(() => {
+    if (!telem?.speed_2026 || telem.speed_2026.length === 0) return '';
+    const speeds = telem.speed_2026;
+    const stops = speeds.map((v, i) => {
+      const pct = ((i / (speeds.length - 1)) * 100).toFixed(1);
+      let color = '#4338CA'; // Indigo: slow apex (< 135 km/h)
+      if (v >= 285) color = '#C2410C'; // Terracotta: top speed (> 285 km/h)
+      else if (v >= 215) color = '#D97706'; // Amber: high speed (215 - 285 km/h)
+      else if (v >= 135) color = '#0284C7'; // Cyan: medium corner (135 - 215 km/h)
+      return `${color} ${pct}%`;
+    });
+    return `linear-gradient(to right, ${stops.join(', ')})`;
+  }, [telem]);
 
   // Track map SVG geometry
   const mapSvgData = useMemo(() => {
@@ -1035,12 +1088,107 @@ export default function App() {
                 )}
               </div>
 
+              {/* Circuit Speed Bar & Phase Inspector */}
+              <div className="track-speedbar-section">
+                {/* Phase Inspector Header */}
+                <div className="phase-inspector-bar">
+                  <div className="phase-badge-group">
+                    <span className="sector-indicator-pill">{currentTrackPhase.sector}</span>
+                    <span className="phase-name-badge">
+                      {currentTrackPhase.type === 'brake' && <Activity size={13} color="#DC2626" />}
+                      {currentTrackPhase.type === 'straight' && <Wind size={13} color="#C2410C" />}
+                      {currentTrackPhase.type === 'corner' && <Compass size={13} color="#0284C7" />}
+                      {currentTrackPhase.type === 'boost' && <Zap size={13} color="#D97706" />}
+                      {currentTrackPhase.type === 'accel' && <Flame size={13} color="#C2410C" />}
+                      <span>{currentTrackPhase.name}</span>
+                    </span>
+                  </div>
+
+                  {/* Speed Comparison at this Track Phase */}
+                  <div className="phase-speed-comparison">
+                    <span>2026: <strong className="phase-speed-val">{Math.round(liveSpeedKmh)} km/h</strong></span>
+                    {livePoleSpeedKmh !== null && (
+                      <>
+                        <span style={{ color: 'var(--neutral)' }}>|</span>
+                        <span style={{ color: '#0284C7' }}>2025 Pole: <strong>{Math.round(livePoleSpeedKmh)} km/h</strong></span>
+                        <span className={`phase-delta-tag ${liveSpeedDelta >= 0 ? 'faster' : 'slower'}`}>
+                          {liveSpeedDelta >= 0 ? `+${liveSpeedDelta}` : liveSpeedDelta} km/h
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Continuous Multi-Color Speed Ribbon (Heatmap across track) */}
+                <div
+                  className="speed-ribbon-wrapper"
+                  onClick={e => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const pct = Math.max(0, Math.min(1, clickX / rect.width));
+                    setScrubDist(pct * trackLen);
+                    if (isPlaying) setIsPlaying(false);
+                  }}
+                  title="Click anywhere to inspect car speed at that track phase"
+                >
+                  <div
+                    className="speed-ribbon-track"
+                    style={{ background: speedRibbonGradient || '#C2410C' }}
+                  >
+                    {/* Sector Dividers (S1 / S2 / S3) */}
+                    {simData?.sectors?.slice(0, 2).map((sec, sIdx) => {
+                      const divPct = (sec.end / trackLen) * 100;
+                      return (
+                        <div
+                          key={sIdx}
+                          className="speed-ribbon-sector-divider"
+                          style={{ left: `${divPct}%` }}
+                          title={`Boundary: ${sec.name}`}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Active Position Tracking Needle */}
+                  <div
+                    className="speed-ribbon-needle"
+                    style={{ left: `${Math.min(100, Math.max(0, (scrubDist / trackLen) * 100))}%` }}
+                  />
+                </div>
+
+                {/* Speed Ribbon Legend & Sector Ticks */}
+                <div className="speed-ribbon-legend">
+                  <div className="legend-speed-stops">
+                    <span className="speed-stop-item">
+                      <span className="speed-stop-color" style={{ backgroundColor: '#4338CA' }} />
+                      <span>&lt; 135 Slow Apex</span>
+                    </span>
+                    <span className="speed-stop-item">
+                      <span className="speed-stop-color" style={{ backgroundColor: '#0284C7' }} />
+                      <span>135-215 Mid Turn</span>
+                    </span>
+                    <span className="speed-stop-item">
+                      <span className="speed-stop-color" style={{ backgroundColor: '#D97706' }} />
+                      <span>215-285 High Speed</span>
+                    </span>
+                    <span className="speed-stop-item">
+                      <span className="speed-stop-color" style={{ backgroundColor: '#C2410C' }} />
+                      <span>&gt; 285 Straight Peak</span>
+                    </span>
+                  </div>
+
+                  <span style={{ fontFamily: 'var(--font-code)' }}>
+                    Track Speed Ribbon
+                  </span>
+                </div>
+              </div>
+
               {/* Scrubber slider */}
               <div className="scrub-wrapper">
                 <div className="scrub-labels">
-                  <span>0 m</span>
-                  <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Pos: {Math.round(scrubDist)} m</span>
-                  <span>{Math.round(trackLen)} m</span>
+                  <span>Start (0 m)</span>
+                  <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Distance: {Math.round(scrubDist)} m</span>
+                  <span>Finish ({Math.round(trackLen)} m)</span>
                 </div>
                 <input
                   type="range"
@@ -1061,6 +1209,37 @@ export default function App() {
             <div className="cockpit-view">
               <div className="cockpit-header-title">
                 <Settings2 size={14} /> Telemetry HUD
+              </div>
+
+              {/* Instantaneous Speed Bar Gauge */}
+              <div className="cockpit-speedbar-block">
+                <div className="cockpit-speedbar-header">
+                  <span style={{ color: 'var(--neutral)', fontWeight: 600 }}>Phase Velocity Fill</span>
+                  <span style={{ fontFamily: 'var(--font-code)', fontSize: 11 }}>
+                    <strong style={{ color: 'var(--primary)' }}>{Math.round(liveSpeedKmh)} km/h</strong>
+                    {livePoleSpeedKmh && <span style={{ color: '#0284C7', marginLeft: 6 }}>({Math.round(livePoleSpeedKmh)} pole)</span>}
+                  </span>
+                </div>
+                <div className="speedbar-gauge-track">
+                  <div
+                    className="speedbar-gauge-fill"
+                    style={{ width: `${Math.min(100, Math.max(0, (liveSpeedKmh / 365) * 100))}%` }}
+                  />
+                  {livePoleSpeedKmh && (
+                    <div
+                      className="speedbar-ghost-needle"
+                      style={{ left: `${Math.min(100, Math.max(0, (livePoleSpeedKmh / 365) * 100))}%` }}
+                      title={`2025 Pole Speed at this phase: ${Math.round(livePoleSpeedKmh)} km/h`}
+                    />
+                  )}
+                </div>
+                <div className="speedbar-ticks">
+                  <span>0</span>
+                  <span>100</span>
+                  <span>200</span>
+                  <span>300</span>
+                  <span>365 km/h</span>
+                </div>
               </div>
 
               <div className="cockpit-telemetry-readouts">
