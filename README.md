@@ -30,14 +30,18 @@
 - **Chassis & Minimum Mass**: Homologated 888 kg minimum mass (768 kg empty + 80 kg driver ballast + 40 kg qualifying fuel).
 - **Dynamic Engineering Levers**: All parameters default to official 2026 regulations, but remain fully dynamic and tunable via interactive sliders with plain-English tooltips. A one-click **"✨ Reset All to Official 2026 FIA Regulations"** restores homologated baseline specs immediately.
 
-### 3. Plain-English Telemetry Insights & Beginner's Guide
-- **Radio Debrief Verdict**: Clear race engineer explanation comparing the 2026 simulation lap time against the real qualifying pole lap in seconds and M:SS.mmm format.
-- **4 Visual Insight Cards**:
-  1. ⚡ **350 kW MGU-K Boost**: Explains how much electric energy was deployed and how the motor accelerated the car out of corners.
-  2. 💨 **Active Aero Wings**: Explains how downforce glued the car through turns and how flaps opened on straights to reach top speeds.
-  3. 🛑 **Braking & 350 kW Harvesting**: Explains stopping G-forces and how much free electrical energy was regenerated into the battery.
-  4. 🔋 **Battery Health & Tire Grip**: Explains finish battery state-of-charge and tire thermal condition.
-- **Beginner's Guide Expander**: An easy-to-read explainer breaking down 2026 hybrid power, active aero, tapering, brake-by-wire, and how to read telemetry graphs.
+### 3. Dual-Mode Interface: Accessible for Everyone & Pro Engineering
+- **🟢 Mode 1: Simple & Clean (Default for Everyone)**:
+  - **Hero Lap Result Banner**: Huge 46px font (`1:20.842`), high-contrast delta badge (`🟢 0.630s FASTER THAN REAL POLE!`), and a plain-English explanation comparing the simulated lap against the real qualifying pole driver and team.
+  - **4 Decongested Stat Cards**: Lap Time vs Real Pole, Top Speed (km/h & mph on main straights), 350 kW Electric Boost in horsepower (+470 hp), and Battery Health % with energy regenerated in MJ.
+  - **Interactive Lap Visualizer**: Clean side-by-side view featuring an interactive track map on the left (with a car scrubbing along the circuit) and a minimalist 4-gauge digital cockpit on the right (Speed, Gear, Throttle/Brake bars, and Motor deploy/recharge state).
+  - **High-Contrast Speed Chart**: A single, clean, uncluttered graph showing speed across the lap with straight vs corner annotations.
+  - **Plain-English Beginner's Guide**: An easy-to-read collapsible guide explaining 2026 50/50 hybrid power, electric tapering, active aero wings, and regenerative braking.
+- **⚙️ Mode 2: Pro Engineering Telemetry (For Race Engineers)**:
+  - Full 6-channel MoTeC/ATLAS telemetry graphs (Speed, Throttle/Brake, Gear/RPM, 4-Corner Tire Loads $F_z$, Power Deployment, and Battery SoC).
+  - G-G friction circle with peak lateral/longitudinal acceleration callouts.
+  - Full FIA technical homologation setup sheet.
+  - Export suite for MoTeC i2 Pro CSV, MoTeC LDX timing beacons, MATLAB R2026a `.mat`, and interactive HTML.
 
 ### 4. 4-Wheel / Dual-Track Chassis Dynamics (`f1_sim/vehicle_dynamics.py`)
 - **4-Corner Dynamic Normal Load Transfer**:
