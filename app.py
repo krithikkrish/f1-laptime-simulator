@@ -164,10 +164,10 @@ def format_lap_str(seconds: float) -> str:
 
 
 # ==========================================
-# SIDEBAR CONTROLS (CLEAN & ACCESSIBLE)
+# SIDEBAR: TRACK SELECTION & ADVANCED TUNING
 # ==========================================
 with st.sidebar:
-    st.markdown("### 🏁 Grand Prix Track")
+    st.markdown("### 🏁 Grand Prix Venue")
     
     circuits_data = get_available_circuits_list()
     circ_options = [c["key"] for c in circuits_data]
@@ -176,11 +176,11 @@ with st.sidebar:
     # Default to Miami or Monza
     default_idx = 5 if len(circ_options) > 5 else 0
     selected_circuit = st.selectbox(
-        "Choose Circuit",
+        "Choose Track",
         circ_options,
         index=default_idx,
         format_func=lambda k: circ_labels.get(k, k),
-        help="Select any of the 24 official Formula 1 World Championship circuits."
+        help="Choose from all 24 Grand Prix circuits on the FIA Formula 1 World Championship calendar."
     )
     
     track, active_weather, track_meta = create_calendar_track(selected_circuit, ds=1.0)
@@ -189,46 +189,132 @@ with st.sidebar:
     pole_info = get_pole_benchmark_info(track_meta)
     ref_df = get_real_pole_telemetry(track_meta.get("meeting_key"), track.length)
     
-    st.info(f"📊 **Pole Reference:** 2024 {track_meta.get('country')} GP  \n"
+    st.info(f"🏁 **2024 Benchmark:** {track_meta.get('country')} GP  \n"
             f"**Driver:** {pole_info['driver_name']} ({pole_info['team_name']})  \n"
-            f"**Official Q3 Pole:** {pole_info['lap_time_str']}")
-    
-    st.markdown("---")
-    st.markdown("### 🏎️ Simple Car Setup")
-    
-    preset_choice = st.selectbox(
-        "Driving Style Preset",
-        ["Balanced Baseline (2026 Official)", "High Speed (Low Drag)", "High Downforce (Cornering)", "Wet / Rain Setup"],
-        index=0,
-        help="One-click aerodynamic and chassis tuning presets for the 2026 car."
-    )
-    
-    if "High Speed" in preset_choice:
-        current_setup = SETUP_PRESETS["monza"]
-    elif "High Downforce" in preset_choice:
-        current_setup = SETUP_PRESETS["monaco"]
-    elif "Wet" in preset_choice:
-        current_setup = SETUP_PRESETS["wet"]
-    else:
-        current_setup = SETUP_PRESETS["balanced"]
-        
-    col_tire, col_fuel = st.columns(2)
-    with col_tire:
-        compound = st.selectbox("Tire", ["Soft Slick", "Medium Slick", "Hard Slick", "Wet Treaded"], index=0)
-    with col_fuel:
-        fuel_m = st.slider("Fuel (kg)", min_value=10.0, max_value=110.0, value=35.0, step=5.0, help="Qualifying run: 20-35 kg | Full race tank: 100-110 kg")
+            f"**Pole Lap:** `{pole_info['lap_time_str']}` (Official Q3)")
 
-    # Collapsible Advanced Tuning
-    with st.expander("🛠️ Advanced Tuning (Optional)", expanded=False):
-        st.caption("Defaulted to official 2026 FIA technical specifications.")
-        ice_p = st.slider("ICE Petrol Engine (kW)", 350.0, 430.0, current_setup.p_ice_kw, 5.0)
-        mguk_p = st.slider("Electric MGU-K Motor (kW)", 250.0, 360.0, current_setup.p_mguk_kw, 5.0)
-        v_taper = st.slider("Electric Taper Speed (km/h)", 270.0, 310.0, current_setup.v_taper_kmh, 5.0)
-        v_cutoff = st.slider("Electric Cutoff Speed (km/h)", 320.0, 360.0, current_setup.v_cutoff_kmh, 5.0)
-        cl_z = st.slider("Corner Downforce (Cl*A)", 2.5, 4.5, current_setup.cl_a_z_mode, 0.1)
-        cd_x = st.slider("Straight Drag (Cd*A)", 0.6, 1.3, current_setup.cd_a_x_mode, 0.05)
-        bbw_bias = st.slider("Brake Balance (% Front)", 52.0, 60.0, current_setup.brake_bias_front_pct, 0.5)
-        soc_init = st.slider("Starting Battery (%)", 20.0, 100.0, 100.0, 5.0)
+    st.markdown("---")
+    
+    # Collapsible Advanced Tuning (for race engineers only)
+    with st.expander("🛠️ Advanced Engineering Sliders (Optional)", expanded=False):
+        st.caption("Defaulted to official 2026 FIA technical regulations.")
+        ice_p_override = st.slider("ICE Petrol Engine (kW)", 350.0, 430.0, 400.0, 5.0)
+        mguk_p_override = st.slider("Electric MGU-K Motor (kW)", 250.0, 360.0, 350.0, 5.0)
+        v_taper_override = st.slider("Electric Taper Speed (km/h)", 270.0, 310.0, 290.0, 5.0)
+        v_cutoff_override = st.slider("Electric Cutoff Speed (km/h)", 320.0, 360.0, 345.0, 5.0)
+        cl_z_override = st.slider("Corner Downforce (Cl*A)", 2.5, 4.5, 3.60, 0.1)
+        cd_x_override = st.slider("Straight Drag (Cd*A)", 0.6, 1.3, 0.88, 0.05)
+        bbw_bias_override = st.slider("Brake Balance (% Front)", 52.0, 60.0, 56.5, 0.5)
+        soc_init_override = st.slider("Starting Battery (%)", 20.0, 100.0, 100.0, 5.0)
+        use_adv = st.checkbox("Apply Advanced Sliders", value=False)
+
+
+# ==========================================
+# TOP HEADER BAR & DISPLAY MODE SWITCHER
+# ==========================================
+flag = COUNTRY_FLAGS.get(track_meta.get("country", ""), "🏁")
+
+col_hdr1, col_hdr2 = st.columns([3.2, 1.8])
+with col_hdr1:
+    st.markdown(f"## {flag} {track.name.upper()}")
+    st.caption(f"🏁 **Benchmark Comparison:** {pole_info['full_label']} (Official 2024 Q3 Pole) | Track Length: **{track.length:,.0f} m**")
+
+with col_hdr2:
+    view_mode = st.radio(
+        "Display Mode",
+        ["🟢 Simple & Clean (For Everyone)", "⚙️ Pro Engineering Telemetry"],
+        index=0,
+        horizontal=True
+    )
+
+# ==========================================
+# 🎮 USER-FRIENDLY ONE-CLICK BUTTONS
+# ==========================================
+with st.container(border=True):
+    col_b1, col_b2, col_b3 = st.columns([1.3, 1.1, 1.2])
+    
+    with col_b1:
+        st.markdown("**🛞 Tire Compound**")
+        tire_btn = st.pills(
+            "Tire Compound",
+            ["🔴 Soft (Fastest)", "🟡 Medium (Balanced)", "⚪ Hard (Durable)", "🔵 Wet (Rain)"],
+            default="🔴 Soft (Fastest)",
+            label_visibility="collapsed"
+        )
+        
+    with col_b2:
+        st.markdown("**⛽ Fuel Load**")
+        fuel_btn = st.pills(
+            "Fuel Load",
+            ["⚡ Quali (Light, 25 kg)", "⏱️ Sprint (50 kg)", "🏁 Race Tank (100 kg)"],
+            default="⚡ Quali (Light, 25 kg)",
+            label_visibility="collapsed"
+        )
+        
+    with col_b3:
+        st.markdown("**🏎️ Car Setup**")
+        setup_btn = st.pills(
+            "Car Setup",
+            ["⚖️ Balanced (Official)", "🚀 High Speed (Low Drag)", "🎯 High Grip (Corners)"],
+            default="⚖️ Balanced (Official)",
+            label_visibility="collapsed"
+        )
+
+# Map user-friendly buttons to physics parameters
+if "High Speed" in (setup_btn or ""):
+    current_setup = SETUP_PRESETS["monza"]
+elif "High Grip" in (setup_btn or ""):
+    current_setup = SETUP_PRESETS["monaco"]
+elif "Wet" in (tire_btn or ""):
+    current_setup = SETUP_PRESETS["wet"]
+else:
+    current_setup = SETUP_PRESETS["balanced"]
+
+# Tire compound physics mapping
+if "Medium" in (tire_btn or ""):
+    compound = "Medium Slick"
+    mu_val = 1.70
+    is_wet = False
+elif "Hard" in (tire_btn or ""):
+    compound = "Hard Slick"
+    mu_val = 1.62
+    is_wet = False
+elif "Wet" in (tire_btn or ""):
+    compound = "Wet Treaded"
+    mu_val = 1.25
+    is_wet = True
+else:
+    compound = "Soft Slick"
+    mu_val = 1.76
+    is_wet = False
+
+# Fuel load mapping
+if "Race" in (fuel_btn or ""):
+    fuel_m = 100.0
+elif "Sprint" in (fuel_btn or ""):
+    fuel_m = 50.0
+else:
+    fuel_m = 25.0
+
+# Apply advanced slider overrides if checked
+if 'use_adv' in locals() and use_adv:
+    ice_p = ice_p_override
+    mguk_p = mguk_p_override
+    v_taper = v_taper_override
+    v_cutoff = v_cutoff_override
+    cl_z = cl_z_override
+    cd_x = cd_x_override
+    bbw_bias = bbw_bias_override
+    soc_init = soc_init_override
+else:
+    ice_p = current_setup.p_ice_kw
+    mguk_p = current_setup.p_mguk_kw
+    v_taper = current_setup.v_taper_kmh
+    v_cutoff = current_setup.v_cutoff_kmh
+    cl_z = current_setup.cl_a_z_mode
+    cd_x = current_setup.cd_a_x_mode
+    bbw_bias = current_setup.brake_bias_front_pct
+    soc_init = 100.0
 
 
 # ==========================================
@@ -246,8 +332,8 @@ params_a = VehicleParams(
     cd_A_z_mode=current_setup.cd_a_z_mode,
     cl_A_x_mode=current_setup.cl_a_x_mode,
     cd_A_x_mode=cd_x,
-    mu_peak=1.76 if "Soft" in compound else (1.70 if "Medium" in compound else (1.62 if "Hard" in compound else 1.25)),
-    tire_compound="WET" if ("Wet" in compound or "Inter" in compound) else "SLICK"
+    mu_peak=mu_val,
+    tire_compound="WET" if is_wet else "SLICK"
 )
 
 engine_a = SimulationEngine(params=params_a, weather=active_weather)
@@ -268,24 +354,6 @@ delta_lap = (sim_telem_a.lap_time - ref_lap_time) if ref_lap_time is not None el
 sim_lap_str = format_lap_str(sim_telem_a.lap_time)
 ref_lap_str = pole_info.get("lap_time_str", "N/A")
 
-
-# ==========================================
-# TOP HEADER BAR & DISPLAY MODE SWITCHER
-# ==========================================
-flag = COUNTRY_FLAGS.get(track_meta.get("country", ""), "🏁")
-
-col_hdr1, col_hdr2 = st.columns([3.0, 2.0])
-with col_hdr1:
-    st.markdown(f"## {flag} {track.name.upper()}")
-    st.caption(f"🏁 **Comparing Against:** {pole_info['full_label']} (Official 2024 Q3 Qualifying) | Track Length: **{track.length:,.0f} m**")
-
-with col_hdr2:
-    view_mode = st.radio(
-        "Display Mode",
-        ["🟢 Simple & Clean (For Everyone)", "⚙️ Pro Engineering Telemetry"],
-        index=0,
-        horizontal=True
-    )
 
 
 # ==========================================
