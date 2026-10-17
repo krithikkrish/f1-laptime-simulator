@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -15,20 +15,28 @@ import {
   Gauge,
   Zap,
   Battery,
+  BatteryCharging,
   Flag,
-  Flame,
   Activity,
   Play,
   Pause,
-  HelpCircle,
-  CheckCircle2,
-  Sliders,
+  SlidersHorizontal,
   Wind,
   Layers,
-  ChevronRight,
+  ChevronDown,
+  ChevronUp,
   RotateCcw,
+  Award,
+  Fuel,
+  Timer,
+  TrendingUp,
+  TrendingDown,
+  Download,
+  Settings2,
+  Cpu,
+  Disc,
   Compass,
-  Award
+  CheckCircle2
 } from 'lucide-react';
 import './index.css';
 
@@ -43,11 +51,11 @@ ChartJS.register(
   Filler
 );
 
-// Ember Studio Chart styling options
+// High-fidelity natural Chart styling
 const createEmberChartOptions = (yTitle, yMin = undefined, yMax = undefined) => ({
   responsive: true,
   maintainAspectRatio: false,
-  animation: { duration: 250 },
+  animation: { duration: 200 },
   interaction: {
     mode: 'index',
     intersect: false,
@@ -60,32 +68,32 @@ const createEmberChartOptions = (yTitle, yMin = undefined, yMax = undefined) => 
       bodyColor: '#D6D3D1',
       borderColor: '#78716C',
       borderWidth: 1,
-      padding: 12,
-      cornerRadius: 8,
+      padding: 10,
+      cornerRadius: 6,
       bodyFont: { family: 'Source Sans 3', size: 13 },
-      titleFont: { family: 'Fira Code', size: 13, weight: 'bold' }
+      titleFont: { family: 'Fira Code', size: 12, weight: 'bold' }
     }
   },
   scales: {
     x: {
-      grid: { color: '#E7E5E4' },
+      grid: { color: '#F5F5F4' },
       ticks: {
         color: '#78716C',
         font: { family: 'Fira Code', size: 11 },
-        maxTicksLimit: 10,
+        maxTicksLimit: 9,
         callback: (val) => `${Math.round(val)}m`
       },
       title: {
         display: true,
         text: 'Circuit Distance (Meters)',
         color: '#78716C',
-        font: { family: 'Source Sans 3', size: 12, weight: '600' }
+        font: { family: 'Source Sans 3', size: 11.5, weight: '600' }
       }
     },
     y: {
       min: yMin,
       max: yMax,
-      grid: { color: '#E7E5E4' },
+      grid: { color: '#F5F5F4' },
       ticks: {
         color: '#57534E',
         font: { family: 'Fira Code', size: 11 }
@@ -94,19 +102,42 @@ const createEmberChartOptions = (yTitle, yMin = undefined, yMax = undefined) => 
         display: true,
         text: yTitle,
         color: '#1C1917',
-        font: { family: 'Source Sans 3', size: 12, weight: '600' }
+        font: { family: 'Source Sans 3', size: 11.5, weight: '600' }
       }
     }
   }
 });
 
+// Official 2026 FIA Baseline Homologated Defaults
+const OFFICIAL_2026_DEFAULTS = {
+  ice_kw: 400.0,      // 536 bhp
+  mguk_kw: 350.0,     // 470 bhp
+  v_taper: 290.0,     // km/h
+  v_cutoff: 345.0,    // km/h
+  cl_z: 4.80,         // Z-Mode high downforce
+  cd_x: 0.85,         // X-Mode low drag
+  bbw_bias: 56.5,     // % Front brake bias
+  soc_init: 100.0,    // % Initial battery charge
+  fuel_kg: 25.0       // Qualifying fuel
+};
+
 export default function App() {
   const [tracks, setTracks] = useState([]);
-  const [selectedTrackKey, setSelectedTrackKey] = useState('miami');
+  const [selectedTrackKey, setSelectedTrackKey] = useState('monza');
   const [compound, setCompound] = useState('Soft Slick');
   const [fuelKg, setFuelKg] = useState(25.0);
   const [setupMode, setSetupMode] = useState('balanced');
-  const [activeTab, setActiveTab] = useState('telemetry');
+
+  // Advanced Engineering Calibration Levers
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [iceKw, setIceKw] = useState(OFFICIAL_2026_DEFAULTS.ice_kw);
+  const [mgukKw, setMgukKw] = useState(OFFICIAL_2026_DEFAULTS.mguk_kw);
+  const [vTaper, setVTaper] = useState(OFFICIAL_2026_DEFAULTS.v_taper);
+  const [vCutoff, setVCutoff] = useState(OFFICIAL_2026_DEFAULTS.v_cutoff);
+  const [clZ, setClZ] = useState(OFFICIAL_2026_DEFAULTS.cl_z);
+  const [cdX, setCdX] = useState(OFFICIAL_2026_DEFAULTS.cd_x);
+  const [bbwBias, setBbwBias] = useState(OFFICIAL_2026_DEFAULTS.bbw_bias);
+  const [socInit, setSocInit] = useState(OFFICIAL_2026_DEFAULTS.soc_init);
 
   const [loading, setLoading] = useState(true);
   const [simData, setSimData] = useState(null);
@@ -134,8 +165,8 @@ export default function App() {
       });
   }, []);
 
-  // 2. Fetch Transient ODE Simulation against 2025 Benchmark
-  useEffect(() => {
+  // 2. Execute 100 Hz Transient Simulation
+  const runSimulation = () => {
     if (!selectedTrackKey) return;
     setLoading(true);
     setError(null);
@@ -145,9 +176,17 @@ export default function App() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         track_key: selectedTrackKey,
-        compound: compound,
+        compound,
         fuel_kg: fuelKg,
-        setup: setupMode
+        setup: setupMode,
+        ice_kw: iceKw,
+        mguk_kw: mgukKw,
+        v_taper: vTaper,
+        v_cutoff: vCutoff,
+        cl_z: clZ,
+        cd_x: cdX,
+        bbw_bias: bbwBias,
+        soc_init: socInit / 100.0
       })
     })
       .then(res => {
@@ -165,14 +204,70 @@ export default function App() {
         setError(err.message || 'Simulation error');
         setLoading(false);
       });
+  };
+
+  // Re-run simulation when track, compound, fuel, or preset changes
+  useEffect(() => {
+    runSimulation();
   }, [selectedTrackKey, compound, fuelKg, setupMode]);
 
-  // 3. Drive / Animate car along circuit
+  // Reset all levers to official 2026 FIA regulations
+  const handleResetToBaseline = () => {
+    setIceKw(OFFICIAL_2026_DEFAULTS.ice_kw);
+    setMgukKw(OFFICIAL_2026_DEFAULTS.mguk_kw);
+    setVTaper(OFFICIAL_2026_DEFAULTS.v_taper);
+    setVCutoff(OFFICIAL_2026_DEFAULTS.v_cutoff);
+    setClZ(OFFICIAL_2026_DEFAULTS.cl_z);
+    setCdX(OFFICIAL_2026_DEFAULTS.cd_x);
+    setBbwBias(OFFICIAL_2026_DEFAULTS.bbw_bias);
+    setSocInit(OFFICIAL_2026_DEFAULTS.soc_init);
+    setFuelKg(OFFICIAL_2026_DEFAULTS.fuel_kg);
+    setCompound('Soft Slick');
+    setSetupMode('balanced');
+  };
+
+  // Export MoTeC CSV
+  const handleExportMotec = () => {
+    fetch('/api/export_motec', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        track_key: selectedTrackKey,
+        compound,
+        fuel_kg: fuelKg,
+        setup: setupMode,
+        ice_kw: iceKw,
+        mguk_kw: mgukKw,
+        v_taper: vTaper,
+        v_cutoff: vCutoff,
+        cl_z: clZ,
+        cd_x: cdX,
+        bbw_bias: bbwBias,
+        soc_init: socInit / 100.0
+      })
+    })
+      .then(res => res.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `f1_2026_${selectedTrackKey}_motec.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(err => {
+        console.error('Export error:', err);
+      });
+  };
+
+  // Drive car along circuit
   useEffect(() => {
     if (!isPlaying || !simData?.track?.length_m) return;
     const trackLen = simData.track.length_m;
     const interval = setInterval(() => {
-      setScrubDist(prev => (prev + 30) % trackLen);
+      setScrubDist(prev => (prev + 35) % trackLen);
     }, 40);
     return () => clearInterval(interval);
   }, [isPlaying, simData]);
@@ -196,7 +291,6 @@ export default function App() {
     return closest;
   }, [telem, scrubDist]);
 
-  // Live telemetry values at scrubber position
   const liveSpeedKmh = telem?.speed_2026?.[currentIdx] ?? 0;
   const liveSpeedMph = Math.round(liveSpeedKmh * 0.621371);
   const liveGear = telem?.gear?.[currentIdx] ?? 1;
@@ -240,24 +334,23 @@ export default function App() {
     if (!telem) return null;
     const datasets = [
       {
-        label: '2026 Simulation Car (50/50 Hybrid)',
+        label: '2026 Simulation Car',
         data: telem.speed_2026,
         borderColor: '#C2410C', // Terracotta
-        backgroundColor: 'rgba(194, 65, 12, 0.08)',
-        borderWidth: 2.8,
+        backgroundColor: 'rgba(194, 65, 12, 0.06)',
+        borderWidth: 2.6,
         tension: 0.2,
         pointRadius: 0,
         fill: true,
       }
     ];
 
-    const poleSpeed = telem.speed_2025;
-    if (poleSpeed) {
+    if (telem.speed_2025) {
       datasets.push({
-        label: `2025 Pole Lap (${simData.pole_benchmark.driver_name})`,
-        data: poleSpeed,
-        borderColor: '#0284C7', // Slate Cyan
-        borderWidth: 2,
+        label: `2025 Pole (${simData.pole_benchmark.driver_name})`,
+        data: telem.speed_2025,
+        borderColor: '#0284C7', // Cyan/Slate
+        borderWidth: 1.8,
         borderDash: [5, 4],
         tension: 0.2,
         pointRadius: 0,
@@ -279,24 +372,24 @@ export default function App() {
         {
           label: 'Gas / Throttle (%)',
           data: telem.throttle,
-          borderColor: '#16A34A', // Success green
-          borderWidth: 2,
+          borderColor: '#16A34A',
+          borderWidth: 1.8,
           pointRadius: 0,
           fill: false,
         },
         {
           label: 'Brake Pressure (%)',
           data: telem.brake,
-          borderColor: '#DC2626', // Error red
-          borderWidth: 2,
+          borderColor: '#DC2626',
+          borderWidth: 1.8,
           pointRadius: 0,
           fill: false,
         },
         {
-          label: 'Sequential Gear (x12.5)',
+          label: 'Gear (x12.5)',
           data: telem.gear.map(g => g * 12.5),
-          borderColor: '#D97706', // Amber warning
-          borderWidth: 1.8,
+          borderColor: '#D97706',
+          borderWidth: 1.6,
           borderDash: [3, 3],
           pointRadius: 0,
           fill: false,
@@ -314,19 +407,19 @@ export default function App() {
       labels: telem.distance,
       datasets: [
         {
-          label: '1.6L V6 Petrol Engine (kW)',
+          label: 'V6 Combustion Engine (kW)',
           data: telem.p_ice_kw,
-          borderColor: '#EA580C', // Burnt orange
-          borderWidth: 2.2,
+          borderColor: '#EA580C',
+          borderWidth: 2,
           pointRadius: 0,
           fill: false,
         },
         {
-          label: '350 kW Electric MGU-K Motor (kW)',
+          label: 'Electric MGU-K Motor (kW)',
           data: telem.p_mguk_kw,
-          borderColor: '#7C3AED', // Violet
-          backgroundColor: 'rgba(124, 58, 237, 0.08)',
-          borderWidth: 2.2,
+          borderColor: '#7C3AED',
+          backgroundColor: 'rgba(124, 58, 237, 0.06)',
+          borderWidth: 2,
           pointRadius: 0,
           fill: true,
         }
@@ -335,7 +428,7 @@ export default function App() {
   }, [telem]);
 
   // ==========================================
-  // CHART 4: BATTERY & TIRE TEMPERATURE
+  // CHART 4: BATTERY & TIRE THERMALS
   // ==========================================
   const energyTireChartData = useMemo(() => {
     if (!telem) return null;
@@ -343,18 +436,18 @@ export default function App() {
       labels: telem.distance,
       datasets: [
         {
-          label: 'Battery Charge Level (%)',
+          label: 'Battery State of Charge (%)',
           data: telem.soc_pct,
-          borderColor: '#0D9488', // Teal
-          borderWidth: 2.2,
+          borderColor: '#0D9488',
+          borderWidth: 2,
           pointRadius: 0,
           fill: false,
         },
         {
           label: 'Tire Surface Temp (°C)',
           data: telem.tire_temp,
-          borderColor: '#E11D48', // Rose
-          borderWidth: 2.2,
+          borderColor: '#E11D48',
+          borderWidth: 2,
           pointRadius: 0,
           fill: false,
         }
@@ -371,18 +464,18 @@ export default function App() {
       labels: telem.distance,
       datasets: [
         {
-          label: 'Front Axle Dynamic Load (kg)',
+          label: 'Front Dynamic Load (kg)',
           data: telem.front_load_kg,
           borderColor: '#0284C7',
-          borderWidth: 2,
+          borderWidth: 1.8,
           pointRadius: 0,
           fill: false,
         },
         {
-          label: 'Rear Axle Dynamic Load (kg)',
+          label: 'Rear Dynamic Load (kg)',
           data: telem.rear_load_kg,
           borderColor: '#DB2777',
-          borderWidth: 2,
+          borderWidth: 1.8,
           pointRadius: 0,
           fill: false,
         },
@@ -390,7 +483,7 @@ export default function App() {
           label: 'Aerodynamic Downforce (kg)',
           data: telem.downforce_kg,
           borderColor: '#CA8A04',
-          borderWidth: 2,
+          borderWidth: 1.8,
           borderDash: [4, 4],
           pointRadius: 0,
           fill: false,
@@ -403,11 +496,14 @@ export default function App() {
 
   return (
     <div className="ember-layout">
-      {/* 1. Ember Studio Sidebar Navigation (256px) */}
+      {/* 1. Sidebar Navigation */}
       <aside className="ember-sidebar">
         <div className="sidebar-header">
           <div className="sidebar-brand-title">
-            <span>🏎️</span> Ember Studio
+            <div className="brand-icon-wrapper">
+              <Gauge size={18} />
+            </div>
+            <span>Ember Studio</span>
           </div>
           <div className="sidebar-brand-subtitle">
             Formula 1 Vehicle Dynamics Lab
@@ -415,26 +511,29 @@ export default function App() {
         </div>
 
         <div className="sidebar-content">
-          <div className="sidebar-section-title">CHAMPIONSHIP CIRCUITS</div>
+          <div className="sidebar-section-title">2025 CALENDAR CIRCUITS</div>
           {tracks.map(t => (
             <div
               key={t.key}
               className={`sidebar-nav-item ${selectedTrackKey === t.key ? 'active' : ''}`}
               onClick={() => setSelectedTrackKey(t.key)}
             >
-              <span>{t.flag} {t.short_name}</span>
+              <div className="nav-track-label">
+                <span className="country-code-badge">{t.country_code || 'GP'}</span>
+                <span>{t.short_name}</span>
+              </div>
               <span style={{ fontSize: 11, fontFamily: 'var(--font-code)', color: 'var(--neutral)' }}>
-                {Math.round(t.length_m / 1000 * 10) / 10} km
+                {Math.round(t.length_m / 1000 * 10) / 10}k
               </span>
             </div>
           ))}
 
-          <div className="sidebar-section-title" style={{ marginTop: 16 }}>SYSTEM STATUS</div>
-          <div style={{ padding: '8px 12px', fontSize: 13, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
-            <CheckCircle2 size={15} /> 100 Hz ODE Engine Live
+          <div className="sidebar-section-title" style={{ marginTop: 20 }}>SOLVER STATUS</div>
+          <div style={{ padding: '6px 10px', fontSize: 13, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+            <CheckCircle2 size={14} /> 100 Hz Forward-Euler
           </div>
-          <div style={{ padding: '0 12px', fontSize: 12, color: 'var(--neutral)' }}>
-            2025 FIA Ground-Effect Database
+          <div style={{ padding: '0 10px', fontSize: 12, color: 'var(--neutral)' }}>
+            2025 FIA Benchmark Ground-Truth
           </div>
         </div>
       </aside>
@@ -446,228 +545,465 @@ export default function App() {
           <div className="topbar-breadcrumbs">
             <span>Ember Studio</span>
             <span>/</span>
-            <span>Championship Telemetry</span>
+            <span>Championship Dynamics</span>
             <span>/</span>
-            <strong>{activeTrackMeta?.country} GP ({activeTrackMeta?.short_name})</strong>
+            <strong>{activeTrackMeta?.country} Grand Prix ({activeTrackMeta?.short_name})</strong>
           </div>
 
           <div className="topbar-badge">
-            <Award size={14} /> 2025 Benchmark Standard
+            <Award size={13} /> 2025 Championship Benchmark
           </div>
         </header>
 
-        {/* Content Container (max-width 1200px) */}
+        {/* Content Container (Natural editorial flow, unboxed) */}
         <div className="ember-container">
-          {/* Header Title */}
+          {/* Natural Editorial Page Header */}
           <div className="page-header">
+            <div className="header-meta-row">
+              <span className="venue-country-pill">
+                <Compass size={12} /> {activeTrackMeta?.country_code || 'GP'}
+              </span>
+              <span style={{ fontSize: 13, color: 'var(--neutral)' }}>
+                FIA World Championship Circuit • {Math.round(trackLen).toLocaleString()} Meters
+              </span>
+            </div>
             <h1 className="display-title">
-              {activeTrackMeta?.flag} {simData?.track?.name || 'Grand Prix Circuit'}
+              {simData?.track?.name || 'Grand Prix Circuit'}
             </h1>
             <p className="section-desc" style={{ marginTop: 6 }}>
-              Comparative lap-time and transient energy deployment analysis of the 2026 Technical Regulations against the authentic 2025 qualifying standard.
+              Forward-Euler vehicle dynamics simulation analyzing 2026 regulations against authentic 2025 qualifying pole positions.
             </p>
           </div>
 
-          {/* 2025 Benchmark Banner */}
+          {/* Natural Editorial Benchmark Callout (No chunky box!) */}
           {simData?.pole_benchmark && (
-            <section className="benchmark-card">
-              <div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: '#FEE8DE', color: 'var(--primary)', padding: '3px 10px', borderRadius: 9999, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                  <span>🏁</span> Official 2025 Saturday Q3 Qualifying Reference
+            <div className="editorial-benchmark-strip">
+              <div className="benchmark-info-group">
+                <span className="benchmark-tag">
+                  <Flag size={13} /> Official 2025 Saturday Qualifying Reference
+                </span>
+                <div className="benchmark-headline">
+                  Pole Sitter: <strong>{simData.pole_benchmark.driver_name}</strong> ({simData.pole_benchmark.team_name})
                 </div>
-                <div style={{ fontSize: 15, color: 'var(--text-secondary)' }}>
-                  Pole Sitter: <strong style={{ color: 'var(--text-primary)' }}>{simData.pole_benchmark.driver_name}</strong> ({simData.pole_benchmark.team_name})
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--neutral)', marginTop: 2 }}>
-                  Track Length: {Math.round(trackLen).toLocaleString()} meters | Real GPS Cartesian Waypoints
+                <div style={{ fontSize: 12.5, color: 'var(--neutral)' }}>
+                  Sourced from official OpenF1 / FastF1 telemetry timing sectors.
                 </div>
               </div>
 
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 12, textTransform: 'uppercase', color: 'var(--neutral)', fontWeight: 600, letterSpacing: '0.05em' }}>
-                  2025 Pole Lap Time
-                </div>
-                <div style={{ fontFamily: 'var(--font-code)', fontSize: 26, fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {simData.pole_benchmark.lap_time_str}
-                </div>
+              <div className="benchmark-time-badge">
+                <div className="benchmark-time-label">2025 Pole Benchmark</div>
+                <div className="benchmark-time-val">{simData.pole_benchmark.lap_time_str}</div>
               </div>
-            </section>
+            </div>
           )}
 
-          {/* User-Friendly One-Click Controls (Chips & Selects) */}
-          <section className="controls-panel">
-            <div>
-              <label className="control-label">🛞 Pirelli Tire Compound</label>
+          {/* Natural Controls Bar (Sitting inline on page canvas) */}
+          <div className="natural-controls-bar">
+            {/* Tire Compound Chips */}
+            <div className="control-item">
+              <div className="control-item-label">
+                <Disc size={13} /> Tire Compound
+              </div>
               <div className="chip-group">
                 {[
-                  { id: 'Soft Slick', label: '🔴 Soft', hint: 'Maximum cornering adhesion' },
-                  { id: 'Medium Slick', label: '🟡 Medium', hint: 'Balanced race compound' },
-                  { id: 'Hard Slick', label: '⚪ Hard', hint: 'Durable low-wear compound' },
-                  { id: 'Wet Weather', label: '🔵 Wet', hint: 'Heavy rain tread' },
+                  { id: 'Soft Slick', pip: 'soft', label: 'Soft Slick' },
+                  { id: 'Medium Slick', pip: 'medium', label: 'Medium Slick' },
+                  { id: 'Hard Slick', pip: 'hard', label: 'Hard Slick' },
+                  { id: 'Wet Weather', pip: 'wet', label: 'Wet Tread' },
                 ].map(c => (
                   <button
                     key={c.id}
                     className={`ember-chip ${compound === c.id ? 'active' : ''}`}
                     onClick={() => setCompound(c.id)}
-                    title={c.hint}
                   >
-                    {c.label}
+                    <span className={`tire-pip ${c.pip}`} />
+                    <span>{c.label}</span>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div>
-              <label className="control-label">⛽ Fuel Load on Board</label>
+            {/* Fuel Load Chips */}
+            <div className="control-item">
+              <div className="control-item-label">
+                <Fuel size={13} /> Fuel Load
+              </div>
               <div className="chip-group">
                 {[
-                  { kg: 25.0, label: '⚡ Quali (25 kg)' },
-                  { kg: 50.0, label: '⏱️ Sprint (50 kg)' },
-                  { kg: 100.0, label: '🏁 Grand Prix (100 kg)' },
-                ].map(f => (
-                  <button
-                    key={f.kg}
-                    className={`ember-chip ${fuelKg === f.kg ? 'active' : ''}`}
-                    onClick={() => setFuelKg(f.kg)}
-                  >
-                    {f.label}
-                  </button>
-                ))}
+                  { kg: 25.0, label: 'Quali (25 kg)', icon: Timer },
+                  { kg: 50.0, label: 'Sprint (50 kg)', icon: Activity },
+                  { kg: 100.0, label: 'Grand Prix (100 kg)', icon: Flag },
+                ].map(f => {
+                  const Icon = f.icon;
+                  return (
+                    <button
+                      key={f.kg}
+                      className={`ember-chip ${fuelKg === f.kg ? 'active' : ''}`}
+                      onClick={() => setFuelKg(f.kg)}
+                    >
+                      <Icon size={12} />
+                      <span>{f.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div>
-              <label className="control-label">⚖️ Aerodynamic Setup Trim</label>
+            {/* Aero Trim Chips */}
+            <div className="control-item">
+              <div className="control-item-label">
+                <Wind size={13} /> Aero Trim
+              </div>
               <div className="chip-group">
                 {[
-                  { id: 'balanced', label: '⚖️ Balanced Spec' },
-                  { id: 'high_speed', label: '🚀 Monza Low-Drag' },
-                  { id: 'high_downforce', label: '🎯 Monaco High-Grip' },
-                ].map(s => (
-                  <button
-                    key={s.id}
-                    className={`ember-chip ${setupMode === s.id ? 'active' : ''}`}
-                    onClick={() => setSetupMode(s.id)}
-                  >
-                    {s.label}
-                  </button>
-                ))}
+                  { id: 'balanced', label: 'Balanced Spec', icon: Layers },
+                  { id: 'high_speed', label: 'Monza Low-Drag', icon: Wind },
+                  { id: 'high_downforce', label: 'Monaco High-Grip', icon: SlidersHorizontal },
+                ].map(s => {
+                  const Icon = s.icon;
+                  return (
+                    <button
+                      key={s.id}
+                      className={`ember-chip ${setupMode === s.id ? 'active' : ''}`}
+                      onClick={() => setSetupMode(s.id)}
+                    >
+                      <Icon size={12} />
+                      <span>{s.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </section>
 
-          {/* Hero Verdict Banner */}
-          {simData?.results && (
-            <section className="verdict-hero-card">
-              <div>
-                <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--neutral)', fontWeight: 600 }}>
-                  Simulated 2026 Lap Time
+            {/* Action Buttons: Advanced Calibration Toggle */}
+            <div className="controls-actions-group">
+              <button
+                className={`ember-btn-ghost ${showAdvanced ? 'active' : ''}`}
+                onClick={() => setShowAdvanced(!showAdvanced)}
+              >
+                <SlidersHorizontal size={14} />
+                <span>Advanced Calibration</span>
+                {showAdvanced ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+              </button>
+
+              <button
+                className="ember-btn-primary"
+                onClick={runSimulation}
+                title="Run 100 Hz simulation"
+              >
+                <Play size={13} fill="currentColor" />
+                <span>Simulate</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Advanced Engineering Calibration Panel (Only rendered when requested) */}
+          {showAdvanced && (
+            <div className="advanced-drawer">
+              <div className="drawer-header">
+                <div>
+                  <div className="drawer-title">
+                    <Cpu size={18} color="var(--primary)" />
+                    <span>Advanced Powertrain & Chassis Calibration</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--neutral)', marginTop: 2 }}>
+                    Tune individual 2026 power units, active aerodynamic downforce levels, and brake bias balance.
+                  </div>
                 </div>
-                <div className="laptime-display">{simData.results.lap_time_str}</div>
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    className="ember-btn-ghost"
+                    style={{ fontSize: 12, padding: '5px 10px' }}
+                    onClick={handleResetToBaseline}
+                  >
+                    <RotateCcw size={12} />
+                    <span>Reset to 2026 Baseline</span>
+                  </button>
+
+                  <button
+                    className="ember-btn-ghost"
+                    style={{ fontSize: 12, padding: '5px 10px' }}
+                    onClick={handleExportMotec}
+                  >
+                    <Download size={12} />
+                    <span>Export MoTeC CSV</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="advanced-grid">
+                {/* ICE Power Slider */}
+                <div className="slider-group">
+                  <div className="slider-header">
+                    <span className="slider-label">1.6L V6 ICE Power</span>
+                    <span className="slider-val">{Math.round(iceKw)} kW ({Math.round(iceKw * 1.34102)} bhp)</span>
+                  </div>
+                  <input
+                    type="range"
+                    className="ember-slider"
+                    min="300"
+                    max="550"
+                    step="5"
+                    value={iceKw}
+                    onChange={e => setIceKw(parseFloat(e.target.value))}
+                  />
+                  <span style={{ fontSize: 11, color: 'var(--neutral)' }}>Official 2026 Cap: 400 kW (~536 bhp)</span>
+                </div>
+
+                {/* MGU-K Power Slider */}
+                <div className="slider-group">
+                  <div className="slider-header">
+                    <span className="slider-label">350 kW Electric MGU-K</span>
+                    <span className="slider-val">{Math.round(mgukKw)} kW (+{Math.round(mgukKw * 1.34102)} hp)</span>
+                  </div>
+                  <input
+                    type="range"
+                    className="ember-slider"
+                    min="150"
+                    max="450"
+                    step="5"
+                    value={mgukKw}
+                    onChange={e => setMgukKw(parseFloat(e.target.value))}
+                  />
+                  <span style={{ fontSize: 11, color: 'var(--neutral)' }}>Official 2026 Split: 350 kW (+470 hp)</span>
+                </div>
+
+                {/* MGU-K Taper Onset */}
+                <div className="slider-group">
+                  <div className="slider-header">
+                    <span className="slider-label">Electric Taper Onset</span>
+                    <span className="slider-val">{Math.round(vTaper)} km/h</span>
+                  </div>
+                  <input
+                    type="range"
+                    className="ember-slider"
+                    min="220"
+                    max="320"
+                    step="5"
+                    value={vTaper}
+                    onChange={e => setVTaper(parseFloat(e.target.value))}
+                  />
+                  <span style={{ fontSize: 11, color: 'var(--neutral)' }}>Baseline speed where electric power tapers down</span>
+                </div>
+
+                {/* MGU-K Full Cutoff */}
+                <div className="slider-group">
+                  <div className="slider-header">
+                    <span className="slider-label">Electric Full Cutoff</span>
+                    <span className="slider-val">{Math.round(vCutoff)} km/h</span>
+                  </div>
+                  <input
+                    type="range"
+                    className="ember-slider"
+                    min="300"
+                    max="370"
+                    step="5"
+                    value={vCutoff}
+                    onChange={e => setVCutoff(parseFloat(e.target.value))}
+                  />
+                  <span style={{ fontSize: 11, color: 'var(--neutral)' }}>Velocity above which ICE delivers 100% propulsion</span>
+                </div>
+
+                {/* Downforce (Z-Mode) */}
+                <div className="slider-group">
+                  <div className="slider-header">
+                    <span className="slider-label">Cornering Cl·A (Z-Mode)</span>
+                    <span className="slider-val">{clZ.toFixed(2)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    className="ember-slider"
+                    min="2.5"
+                    max="6.5"
+                    step="0.05"
+                    value={clZ}
+                    onChange={e => setClZ(parseFloat(e.target.value))}
+                  />
+                  <span style={{ fontSize: 11, color: 'var(--neutral)' }}>Higher value gives faster apex cornering grip</span>
+                </div>
+
+                {/* Drag (X-Mode) */}
+                <div className="slider-group">
+                  <div className="slider-header">
+                    <span className="slider-label">Straight Drag Cd·A (X-Mode)</span>
+                    <span className="slider-val">{cdX.toFixed(2)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    className="ember-slider"
+                    min="0.5"
+                    max="1.5"
+                    step="0.02"
+                    value={cdX}
+                    onChange={e => setCdX(parseFloat(e.target.value))}
+                  />
+                  <span style={{ fontSize: 11, color: 'var(--neutral)' }}>Low-drag active aero state on straightaways</span>
+                </div>
+
+                {/* Brake Bias */}
+                <div className="slider-group">
+                  <div className="slider-header">
+                    <span className="slider-label">Brake Bias (Front %)</span>
+                    <span className="slider-val">{bbwBias.toFixed(1)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    className="ember-slider"
+                    min="50.0"
+                    max="65.0"
+                    step="0.5"
+                    value={bbwBias}
+                    onChange={e => setBbwBias(parseFloat(e.target.value))}
+                  />
+                  <span style={{ fontSize: 11, color: 'var(--neutral)' }}>Static hydraulic bias before dynamic BBW migration</span>
+                </div>
+
+                {/* Battery Initial SoC */}
+                <div className="slider-group">
+                  <div className="slider-header">
+                    <span className="slider-label">Starting Battery SoC</span>
+                    <span className="slider-val">{Math.round(socInit)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    className="ember-slider"
+                    min="20"
+                    max="100"
+                    step="5"
+                    value={socInit}
+                    onChange={e => setSocInit(parseFloat(e.target.value))}
+                  />
+                  <span style={{ fontSize: 11, color: 'var(--neutral)' }}>Starting state of charge out of the final pit lane exit</span>
+                </div>
+              </div>
+
+              <div className="drawer-footer-actions">
+                <button
+                  className="ember-btn-primary"
+                  onClick={runSimulation}
+                >
+                  <Play size={13} fill="currentColor" />
+                  <span>Apply & Simulate Calibration</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Natural Editorial Verdict & Delta (Unboxed) */}
+          {simData?.results && (
+            <div className="editorial-verdict-section">
+              <div className="verdict-lap-col">
+                <span className="verdict-eyebrow">Simulated 2026 Lap Time</span>
+                <div className="verdict-laptime-text">{simData.results.lap_time_str}</div>
 
                 {simData.results.delta_s !== null && (
-                  <div className={`delta-tag ${simData.results.faster_than_pole ? 'faster' : 'slower'}`}>
-                    {simData.results.faster_than_pole
-                      ? `🚀 ${Math.abs(simData.results.delta_s).toFixed(3)}s FASTER than 2025 Pole`
-                      : `⏱️ +${simData.results.delta_s.toFixed(3)}s vs 2025 Pole Lap`}
+                  <div className={`verdict-delta-tag ${simData.results.faster_than_pole ? 'faster' : 'slower'}`}>
+                    {simData.results.faster_than_pole ? (
+                      <>
+                        <TrendingUp size={14} />
+                        <span>{Math.abs(simData.results.delta_s).toFixed(3)}s faster than 2025 pole</span>
+                      </>
+                    ) : (
+                      <>
+                        <Timer size={14} />
+                        <span>+{simData.results.delta_s.toFixed(3)}s vs 2025 pole lap</span>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
 
-              <div style={{ maxWidth: 540, fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              <div className="verdict-narrative">
                 <p>
-                  <strong>Race Engineering Assessment:</strong> {simData.results.faster_than_pole
-                    ? `The 2026 specification car surpasses ${simData.pole_benchmark.driver_name}'s 2025 pole lap by ${Math.abs(simData.results.delta_s).toFixed(3)} seconds. Active aerodynamics (low-drag X-Mode on straights) combined with instant +470 hp electrical torque delivers superior exit speeds.`
-                    : `The 2026 car is +${simData.results.delta_s.toFixed(3)} seconds off the 2025 pole mark. Reducing fuel load or switching to Soft Slicks will close the deficit through medium-speed corners.`}
+                  <strong>Race Engineering Analysis:</strong> {simData.results.faster_than_pole
+                    ? `The 2026 specification vehicle eclipses ${simData.pole_benchmark.driver_name}'s 2025 pole time by ${Math.abs(simData.results.delta_s).toFixed(3)} seconds. The combination of low-drag X-Mode active aerodynamics and instantaneous +470 hp electric torque out of corner apexes produces superior terminal speed.`
+                    : `The 2026 regulation car is +${simData.results.delta_s.toFixed(3)} seconds off the 2025 pole reference. With higher cornering mass (888 kg) and lower floor downforce under the revised rules, mechanical grip through technical medium-speed turns remains the determining lap-time factor.`}
                 </p>
               </div>
-            </section>
+            </div>
           )}
 
-          {/* Four Key Metrics Cards */}
+          {/* Natural Four Metrics (Horizontal strip with fine hairlines, NO gray boxes) */}
           {simData?.results && (
-            <section className="metrics-grid">
-              <div className="metric-card">
-                <div className="metric-title" style={{ color: 'var(--primary)' }}>
-                  <Activity size={14} /> 2026 LAP TIME
-                </div>
-                <div className="metric-value" style={{ color: 'var(--primary)' }}>
+            <div className="natural-metrics-strip">
+              <div className="metric-strip-item">
+                <span className="metric-strip-title" style={{ color: 'var(--primary)' }}>
+                  <Activity size={13} /> 2026 Lap Time
+                </span>
+                <div className="metric-strip-value" style={{ color: 'var(--primary)' }}>
                   {simData.results.lap_time_str}
                 </div>
-                <div className="metric-desc">
-                  2025 Real Pole: <strong>{simData.pole_benchmark.lap_time_str}</strong> ({simData.pole_benchmark.driver_name})
+                <div className="metric-strip-sub">
+                  2025 Benchmark: <strong>{simData.pole_benchmark.lap_time_str}</strong> ({simData.pole_benchmark.driver_name})
                 </div>
               </div>
 
-              <div className="metric-card">
-                <div className="metric-title" style={{ color: '#0284C7' }}>
-                  <Gauge size={14} /> TOP SPEED
+              <div className="metric-strip-item">
+                <span className="metric-strip-title" style={{ color: '#0284C7' }}>
+                  <Gauge size={13} /> Straightaway Peak
+                </span>
+                <div className="metric-strip-value">
+                  {Math.round(simData.results.top_speed_kmh)} <span style={{ fontSize: 14 }}>km/h</span>
                 </div>
-                <div className="metric-value">
-                  {Math.round(simData.results.top_speed_kmh)} <span style={{ fontSize: 16 }}>km/h</span>
-                </div>
-                <div className="metric-desc">
-                  <strong>{Math.round(simData.results.top_speed_mph)} mph</strong> reached in X-Mode. 2025 Pole: <strong>{simData.pole_benchmark.top_speed_kmh} km/h</strong>
-                </div>
-              </div>
-
-              <div className="metric-card">
-                <div className="metric-title" style={{ color: 'var(--accent)' }}>
-                  <Zap size={14} /> ELECTRIC BOOST
-                </div>
-                <div className="metric-value" style={{ color: 'var(--accent)' }}>
-                  350 kW <span style={{ fontSize: 16 }}>(+470 HP)</span>
-                </div>
-                <div className="metric-desc">
-                  50% electrical power split delivers full torque out of turn apexes.
+                <div className="metric-strip-sub">
+                  <strong>{Math.round(simData.results.top_speed_mph)} mph</strong> in X-Mode (2025: {simData.pole_benchmark.top_speed_kmh} km/h)
                 </div>
               </div>
 
-              <div className="metric-card">
-                <div className="metric-title" style={{ color: 'var(--success)' }}>
-                  <Battery size={14} /> BATTERY FINISH
+              <div className="metric-strip-item">
+                <span className="metric-strip-title" style={{ color: 'var(--accent)' }}>
+                  <Zap size={13} /> Electric Boost
+                </span>
+                <div className="metric-strip-value" style={{ color: 'var(--accent)' }}>
+                  350 kW <span style={{ fontSize: 14 }}>(+470 HP)</span>
                 </div>
-                <div className="metric-value">
-                  {Math.round(simData.results.battery_finish_soc)}% <span style={{ fontSize: 16 }}>SoC</span>
-                </div>
-                <div className="metric-desc">
-                  Harvested <strong>{simData.results.energy_regen_mj.toFixed(2)} MJ</strong> under deceleration zones.
+                <div className="metric-strip-sub">
+                  50/50 powertrain split delivering peak corner exit acceleration
                 </div>
               </div>
-            </section>
+
+              <div className="metric-strip-item">
+                <span className="metric-strip-title" style={{ color: 'var(--success)' }}>
+                  <BatteryCharging size={13} /> Energy Harvested
+                </span>
+                <div className="metric-strip-value">
+                  {simData.results.energy_regen_mj.toFixed(2)} <span style={{ fontSize: 14 }}>MJ</span>
+                </div>
+                <div className="metric-strip-sub">
+                  Finish Battery SoC: <strong>{Math.round(simData.results.battery_finish_soc)}%</strong> under heavy braking
+                </div>
+              </div>
+            </div>
           )}
 
-          {/* Interactive Circuit Map & Live Cockpit */}
-          <section className="visualizer-grid">
+          {/* Interactive Circuit Map & Cockpit Telemetry (Boxes used properly for Canvas) */}
+          <div className="visualizer-section">
             {/* Left: Scaled Circuit Map */}
-            <div className="ember-card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div>
-                  <h3 className="section-title" style={{ fontSize: 18 }}>
-                    {simData?.track?.flag} {simData?.track?.name}
-                  </h3>
-                  <div style={{ fontSize: 12, color: 'var(--neutral)' }}>
-                    Length: {Math.round(trackLen).toLocaleString()} meters | Real GPS Spline Geometry
-                  </div>
+            <div className="canvas-frame">
+              <div className="canvas-frame-header">
+                <div className="canvas-frame-title">
+                  <Compass size={17} color="var(--primary)" />
+                  <span>{simData?.track?.name || 'Circuit'}</span>
                 </div>
 
                 <button
                   className="ember-btn-primary"
-                  style={{ padding: '6px 14px', fontSize: 13 }}
+                  style={{ padding: '6px 12px', fontSize: 12.5 }}
                   onClick={() => setIsPlaying(!isPlaying)}
                 >
-                  {isPlaying ? <Pause size={14} /> : <Play size={14} />}
-                  {isPlaying ? 'Pause Lap' : 'Drive Lap'}
+                  {isPlaying ? <Pause size={13} /> : <Play size={13} fill="currentColor" />}
+                  <span>{isPlaying ? 'Pause' : 'Drive Lap'}</span>
                 </button>
               </div>
 
-              <div className="track-canvas-box">
+              <div className="track-svg-box">
                 {mapSvgData && (
                   <svg className="track-svg" viewBox={mapSvgData.viewBox}>
                     <path
                       d={mapSvgData.pathStr}
                       fill="none"
-                      stroke="#D6D3D1"
+                      stroke="#E7E5E4"
                       strokeWidth="24"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -691,8 +1027,8 @@ export default function App() {
 
                     {mapSvgData.carPos && (
                       <g transform={`translate(${mapSvgData.carPos.x}, ${mapSvgData.carPos.y})`}>
-                        <circle r="18" fill="rgba(194, 65, 12, 0.2)" />
-                        <circle r="10" fill="#C2410C" stroke="#FFFFFF" strokeWidth="2.5" />
+                        <circle r="16" fill="rgba(194, 65, 12, 0.2)" />
+                        <circle r="8" fill="#C2410C" stroke="#FFFFFF" strokeWidth="2" />
                       </g>
                     )}
                   </svg>
@@ -700,15 +1036,15 @@ export default function App() {
               </div>
 
               {/* Scrubber slider */}
-              <div className="scrub-container">
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--neutral)', marginBottom: 4 }}>
+              <div className="scrub-wrapper">
+                <div className="scrub-labels">
                   <span>0 m</span>
-                  <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Position: {Math.round(scrubDist)} m</span>
+                  <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Pos: {Math.round(scrubDist)} m</span>
                   <span>{Math.round(trackLen)} m</span>
                 </div>
                 <input
                   type="range"
-                  className="scrub-range"
+                  className="scrub-slider"
                   min="0"
                   max={trackLen}
                   step="10"
@@ -721,24 +1057,24 @@ export default function App() {
               </div>
             </div>
 
-            {/* Right: Live Cockpit Telemetry Display */}
-            <div className="ember-card">
-              <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--neutral)', marginBottom: 12 }}>
-                🏎️ Live Cockpit Telemetry
+            {/* Right: Cockpit Telemetry Display */}
+            <div className="cockpit-view">
+              <div className="cockpit-header-title">
+                <Settings2 size={14} /> Telemetry HUD
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <div style={{ backgroundColor: '#E7E5E4', padding: 14, borderRadius: 8 }}>
-                  <div style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--neutral)', fontWeight: 600 }}>Live Speed</div>
-                  <div style={{ fontFamily: 'var(--font-code)', fontSize: 26, fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {Math.round(liveSpeedKmh)} <span style={{ fontSize: 14 }}>km/h</span>
+              <div className="cockpit-telemetry-readouts">
+                <div className="hud-readout-col">
+                  <div className="hud-label">Live Velocity</div>
+                  <div className="hud-number">
+                    {Math.round(liveSpeedKmh)} <span className="hud-unit">km/h</span>
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{liveSpeedMph} mph</div>
                 </div>
 
-                <div style={{ backgroundColor: '#E7E5E4', padding: 14, borderRadius: 8 }}>
-                  <div style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--neutral)', fontWeight: 600 }}>Transmission</div>
-                  <div style={{ fontFamily: 'var(--font-code)', fontSize: 26, fontWeight: 700, color: 'var(--primary)' }}>
+                <div className="hud-readout-col">
+                  <div className="hud-label">Transmission</div>
+                  <div className="hud-number" style={{ color: 'var(--primary)' }}>
                     Gear {liveGear}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>8-Speed Seamless</div>
@@ -746,50 +1082,52 @@ export default function App() {
               </div>
 
               {/* Pedals */}
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)' }}>
-                  <span>Gas / Throttle Pedal</span>
-                  <strong style={{ color: 'var(--success)' }}>{liveThrottle}%</strong>
+              <div>
+                <div className="pedal-block">
+                  <div className="pedal-label-row">
+                    <span>Throttle Pedal</span>
+                    <strong style={{ color: 'var(--success)' }}>{liveThrottle}%</strong>
+                  </div>
+                  <div className="pedal-track">
+                    <div className="pedal-fill" style={{ width: `${liveThrottle}%`, backgroundColor: 'var(--success)' }}></div>
+                  </div>
                 </div>
-                <div className="ember-progress-track">
-                  <div className="ember-progress-fill" style={{ width: `${liveThrottle}%`, backgroundColor: 'var(--success)' }}></div>
+
+                <div className="pedal-block">
+                  <div className="pedal-label-row">
+                    <span>Brake Pressure</span>
+                    <strong style={{ color: 'var(--error)' }}>{liveBrake}%</strong>
+                  </div>
+                  <div className="pedal-track">
+                    <div className="pedal-fill" style={{ width: `${liveBrake}%`, backgroundColor: 'var(--error)' }}></div>
+                  </div>
                 </div>
               </div>
 
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)' }}>
-                  <span>Brake Pedal</span>
-                  <strong style={{ color: 'var(--error)' }}>{liveBrake}%</strong>
-                </div>
-                <div className="ember-progress-track">
-                  <div className="ember-progress-fill" style={{ width: `${liveBrake}%`, backgroundColor: 'var(--error)' }}></div>
-                </div>
-              </div>
-
-              <div style={{ backgroundColor: '#E7E5E4', padding: 14, borderRadius: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                  <span style={{ color: 'var(--neutral)' }}>⚡ MGU-K Motor:</span>
+              <div className="cockpit-status-summary">
+                <div className="status-row">
+                  <span className="status-label"><Zap size={13} /> MGU-K Motor:</span>
                   <strong style={{ color: liveMguKw >= 0 ? 'var(--primary)' : 'var(--success)' }}>
-                    {liveMguKw >= 0 ? `+${liveMguKw} kW (Deploying)` : `${liveMguKw} kW (Regenerating)`}
+                    {liveMguKw >= 0 ? `+${liveMguKw} kW (Deploying)` : `${liveMguKw} kW (Harvesting)`}
                   </strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                  <span style={{ color: 'var(--neutral)' }}>💨 Active Wings:</span>
+                <div className="status-row">
+                  <span className="status-label"><Wind size={13} /> Active Wings:</span>
                   <strong style={{ color: isAeroXMode ? 'var(--primary)' : 'var(--text-primary)' }}>
-                    {isAeroXMode ? 'Active Aero Open (Low Drag X-Mode)' : 'Cornering Wing (High Downforce Z-Mode)'}
+                    {isAeroXMode ? 'Open (X-Mode Low Drag)' : 'Closed (Z-Mode Downforce)'}
                   </strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                  <span style={{ color: 'var(--neutral)' }}>🛞 Fitted Tires:</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>{compound}</strong>
+                <div className="status-row">
+                  <span className="status-label"><Disc size={13} /> Fitted Compound:</span>
+                  <strong>{compound}</strong>
                 </div>
               </div>
             </div>
-          </section>
+          </div>
 
           {/* 5 Modular Decongested Telemetry Charts (Separate Legends, 2025 Data Only) */}
-          <section style={{ marginTop: 24 }}>
-            <div style={{ marginBottom: 20 }}>
+          <div className="charts-section">
+            <div className="charts-section-header">
               <h2 className="section-title">Telemetry & Dynamic Performance</h2>
               <p className="section-desc">
                 Dedicated independent engineering channels comparing 2026 vehicle dynamics directly against the 2025 championship standard.
@@ -801,7 +1139,7 @@ export default function App() {
               <div className="chart-header">
                 <div className="chart-heading-group">
                   <h3 className="chart-title">
-                    <Gauge size={18} color="var(--primary)" /> 1. Speed Profile & Lap Comparison
+                    <Gauge size={17} color="var(--primary)" /> 1. Speed Profile & Lap Comparison
                   </h3>
                   <span className="chart-subtitle">
                     Overlay of 2026 simulation speed vs {simData?.pole_benchmark?.driver_name}'s authentic 2025 qualifying pole lap.
@@ -832,7 +1170,7 @@ export default function App() {
               <div className="chart-header">
                 <div className="chart-heading-group">
                   <h3 className="chart-title">
-                    <Activity size={18} color="var(--success)" /> 2. Driver Inputs & Sequential Transmission
+                    <Activity size={17} color="var(--success)" /> 2. Driver Inputs & Sequential Transmission
                   </h3>
                   <span className="chart-subtitle">
                     Gas pedal percentage, hydraulic brake line pressure, and 8-speed gear changes.
@@ -865,7 +1203,7 @@ export default function App() {
               <div className="chart-header">
                 <div className="chart-heading-group">
                   <h3 className="chart-title">
-                    <Zap size={18} color="var(--primary)" /> 3. Hybrid Powertrain Energy Distribution
+                    <Zap size={17} color="var(--primary)" /> 3. Hybrid Powertrain Energy Distribution
                   </h3>
                   <span className="chart-subtitle">
                     1.6L V6 Turbo combustion engine (400 kW) vs 350 kW Electric MGU-K motor deployment & harvesting.
@@ -875,7 +1213,7 @@ export default function App() {
                 <div className="chart-legend-row">
                   <div className="legend-badge">
                     <span className="legend-pill-color" style={{ backgroundColor: '#EA580C' }}></span>
-                    <span>1.6L V6 Petrol Engine (kW)</span>
+                    <span>1.6L V6 Engine (kW)</span>
                   </div>
                   <div className="legend-badge">
                     <span className="legend-pill-color" style={{ backgroundColor: '#7C3AED' }}></span>
@@ -894,7 +1232,7 @@ export default function App() {
               <div className="chart-header">
                 <div className="chart-heading-group">
                   <h3 className="chart-title">
-                    <Battery size={18} color="#0D9488" /> 4. Battery State of Charge & Tire Surface Thermals
+                    <Battery size={17} color="#0D9488" /> 4. Battery State of Charge & Tire Surface Thermals
                   </h3>
                   <span className="chart-subtitle">
                     Energy recovery through braking zones and bulk tire tread temperature (°C).
@@ -923,7 +1261,7 @@ export default function App() {
               <div className="chart-header">
                 <div className="chart-heading-group">
                   <h3 className="chart-title">
-                    <Wind size={18} color="#0284C7" /> 5. Dynamic Axle Vertical Loads & Aerodynamic Downforce
+                    <Wind size={17} color="#0284C7" /> 5. Dynamic Axle Vertical Loads & Aerodynamic Downforce
                   </h3>
                   <span className="chart-subtitle">
                     Physical forces measured in kilograms (kg) across corner entry, apex, and straightaway compression.
@@ -941,7 +1279,7 @@ export default function App() {
                   </div>
                   <div className="legend-badge">
                     <span className="legend-pill-color" style={{ backgroundColor: '#CA8A04' }}></span>
-                    <span>Aerodynamic Downforce (kg)</span>
+                    <span>Downforce (kg)</span>
                   </div>
                 </div>
               </div>
@@ -950,59 +1288,63 @@ export default function App() {
                 {loadChartData && <Line data={loadChartData} options={createEmberChartOptions('Vertical Load (kg)', 0, undefined)} />}
               </div>
             </div>
-          </section>
+          </div>
 
-          {/* Educational Guide in Ember Studio Craft Aesthetic */}
-          <section className="ember-card" style={{ marginTop: 24, padding: 28 }}>
-            <h3 className="section-title" style={{ fontSize: 22, marginBottom: 12 }}>
-              Understanding the 2026 Technical Regulations
+          {/* Educational Technical Spread (Natural editorial columns, unboxed) */}
+          <div className="editorial-technical-spread">
+            <h3 className="technical-spread-title">
+              2026 Technical Regulations Engineering Principles
             </h3>
-            <p className="section-desc" style={{ marginBottom: 20 }}>
-              The 2026 FIA technical regulations represent the largest powertrain and aerodynamic overhaul in modern motorsport history.
+            <p className="section-desc">
+              The 2026 Formula 1 regulations introduce the most comprehensive powertrain and aerodynamic overhaul in championship history.
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
-              <div style={{ backgroundColor: '#E7E5E4', padding: 16, borderRadius: 8 }}>
-                <strong style={{ color: 'var(--primary)', display: 'block', fontSize: 15, marginBottom: 4 }}>
-                  ⚡ 50/50 Powertrain Equality
-                </strong>
-                <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  The 2026 regulations triple the electric contribution to 350 kW (470 hp), paired with an efficient 400 kW (536 hp) turbocharged combustion unit on 100% sustainable fuel.
+            <div className="technical-columns-grid">
+              <div className="technical-column">
+                <div className="column-header">
+                  <Cpu size={16} color="var(--primary)" />
+                  <span>50/50 Power Parity</span>
+                </div>
+                <p className="column-body">
+                  The electric MGU-K output nearly triples from 120 kW to 350 kW (~470 hp), matching the 400 kW (~536 hp) turbocharged 1.6L V6 running on 100% sustainable advanced fuels.
                 </p>
               </div>
 
-              <div style={{ backgroundColor: '#E7E5E4', padding: 16, borderRadius: 8 }}>
-                <strong style={{ color: '#0284C7', display: 'block', fontSize: 15, marginBottom: 4 }}>
-                  💨 Active Wing Aerodynamics
-                </strong>
-                <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  Replacing traditional DRS, automated front and rear wings switch synchronously between high-downforce "Z-Mode" in cornering phases and low-drag "X-Mode" on straights.
+              <div className="technical-column">
+                <div className="column-header">
+                  <Wind size={16} color="#0284C7" />
+                  <span>Active Aerodynamics</span>
+                </div>
+                <p className="column-body">
+                  Replacing DRS, movable front and rear wings switch automatically between high-downforce Z-Mode through corners and ultra-low drag X-Mode on high-speed straights.
                 </p>
               </div>
 
-              <div style={{ backgroundColor: '#E7E5E4', padding: 16, borderRadius: 8 }}>
-                <strong style={{ color: 'var(--warning)', display: 'block', fontSize: 15, marginBottom: 4 }}>
-                  📉 Electrical Speed Tapering
-                </strong>
-                <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  To manage energy over an entire lap, maximum electric deployment occurs between 0 and 290 km/h, automatically tapering down as top speed is sustained by the combustion engine.
+              <div className="technical-column">
+                <div className="column-header">
+                  <TrendingDown size={16} color="var(--warning)" />
+                  <span>Velocity Tapering</span>
+                </div>
+                <p className="column-body">
+                  To conserve the 4.0 MJ per lap battery quota, maximum 350 kW electrical boost is delivered on corner exit up to 290 km/h, tapering linearly to 0 kW at 345 km/h.
                 </p>
               </div>
 
-              <div style={{ backgroundColor: '#E7E5E4', padding: 16, borderRadius: 8 }}>
-                <strong style={{ color: 'var(--success)', display: 'block', fontSize: 15, marginBottom: 4 }}>
-                  🔋 High-Capacity Harvesting
-                </strong>
-                <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  Under heavy braking into chicanes and hairpins, the MGU-K generates up to 350 kW of electrical regeneration, capturing critical energy without conventional brake wear.
+              <div className="technical-column">
+                <div className="column-header">
+                  <BatteryCharging size={16} color="var(--success)" />
+                  <span>High-Rate Harvesting</span>
+                </div>
+                <p className="column-body">
+                  Heavy braking events recover up to 350 kW through rear-axle regeneration, providing the energy needed to power subsequent corner exit deployments without conventional friction pad wear.
                 </p>
               </div>
             </div>
-          </section>
+          </div>
 
           {/* Footer */}
           <footer className="ember-footer">
-            Ember Studio • Formula 1 2026 Transient Lap-Time Simulator & 2025 Championship Benchmark Database.
+            Ember Studio • 2026 Formula 1 Forward-Euler Dynamics ODE Solver & 2025 FIA World Championship Pole Benchmark Telemetry.
           </footer>
         </div>
       </main>

@@ -23,6 +23,15 @@ from f1_sim.tracks_data import create_calendar_track, get_available_circuits_lis
 from f1_sim.pole_telemetry import get_real_pole_telemetry, get_pole_benchmark_info
 from f1_sim.motec_export import export_to_motec_csv, export_to_motec_ldx_beacon
 
+COUNTRY_CODES = {
+    "Bahrain": "BHR", "Saudi Arabia": "SAU", "Australia": "AUS", "Japan": "JPN",
+    "China": "CHN", "United States": "USA", "USA": "USA", "Italy": "ITA",
+    "Monaco": "MCO", "Canada": "CAN", "Spain": "ESP", "Austria": "AUT",
+    "Great Britain": "GBR", "United Kingdom": "GBR", "Hungary": "HUN", "Belgium": "BEL",
+    "Netherlands": "NLD", "Azerbaijan": "AZE", "Singapore": "SGP", "Mexico": "MEX",
+    "Brazil": "BRA", "Qatar": "QAT", "United Arab Emirates": "UAE", "UAE": "UAE"
+}
+
 COUNTRY_FLAGS = {
     "Bahrain": "🇧🇭", "Saudi Arabia": "🇸🇦", "Australia": "🇦🇺", "Japan": "🇯🇵",
     "China": "🇨🇳", "United States": "🇺🇸", "USA": "🇺🇸", "Italy": "🇮🇹",
@@ -69,6 +78,8 @@ class F1SimulationHandler(BaseHTTPRequestHandler):
 
         if path == "/api/simulate":
             self.handle_simulate()
+        elif path == "/api/export_motec":
+            self.handle_export_motec()
         else:
             self.send_error(404, "Endpoint not found")
 
@@ -84,14 +95,17 @@ class F1SimulationHandler(BaseHTTPRequestHandler):
         raw_circuits = get_available_circuits_list()
         tracks = []
         for c in raw_circuits:
-            flag = COUNTRY_FLAGS.get(c.get("country", ""), "🏁")
+            country = c.get("country", "")
+            flag = COUNTRY_FLAGS.get(country, "🏁")
+            code = COUNTRY_CODES.get(country, "F1")
             pole_time_raw = c.get("pole_lap_time")
             pole_str = format_lap_str(float(pole_time_raw)) if pole_time_raw else "N/A"
             tracks.append({
                 "key": c["key"],
                 "meeting_key": c.get("meeting_key"),
                 "short_name": c.get("short_name"),
-                "country": c.get("country"),
+                "country": country,
+                "country_code": code,
                 "flag": flag,
                 "official_name": c.get("official_name"),
                 "length_m": c.get("length_m"),
@@ -273,6 +287,73 @@ class F1SimulationHandler(BaseHTTPRequestHandler):
 
             self.send_json(response_data)
 
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self.send_json({"error": str(e)}, status=500)
+
+    def handle_export_motec(self):
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(content_length).decode("utf-8") if content_length > 0 else "{}"
+            payload = json.loads(body) if body else {}
+
+            track_key = payload.get("track_key", "monza")
+            compound = payload.get("compound", "Soft Slick")
+            fuel_kg = float(payload.get("fuel_kg", 25.0))
+            setup_mode = payload.get("setup", "balanced")
+
+            track, active_weather, track_meta = create_calendar_track(track_key, ds=1.0)
+            if setup_mode in ("high_speed", "monza"):
+                preset = SETUP_PRESETS["Monza Low-Drag Spec"]
+            elif setup_mode in ("high_downforce", "monaco"):
+                preset = SETUP_PRESETS["High-Downforce Monaco Spec"]
+            else:
+                preset = SETUP_PRESETS["Balanced Grand Prix Spec"]
+
+            ice_kw = float(payload.get("ice_kw", preset.ice_power_kw))
+            mguk_kw = float(payload.get("mguk_kw", preset.mguk_power_kw))
+            v_taper = float(payload.get("v_taper", preset.mguk_taper_start_kmh))
+            v_cutoff = float(payload.get("v_cutoff", preset.mguk_taper_end_kmh))
+            cl_z = float(payload.get("cl_z", preset.cl_a_z_mode))
+            cd_x = float(payload.get("cd_x", preset.cd_a_x_mode))
+            bbw_bias = float(payload.get("bbw_bias", preset.brake_bias_front_pct))
+            soc_init = float(payload.get("soc_init", 1.0))
+
+            params = VehicleParams(
+                mass_empty=preset.car_empty_mass_kg,
+                fuel_mass=fuel_kg,
+                p_ice_max=ice_kw * 1e3,
+                p_mguk_deploy_max=mguk_kw * 1e3,
+                p_mguk_regen_max=mguk_kw * 1e3,
+                v_taper_start_kmh=v_taper,
+                v_taper_end_kmh=v_cutoff,
+                cl_A_z_mode=cl_z,
+                cd_A_z_mode=preset.cd_a_z_mode,
+                cl_A_x_mode=preset.cl_a_x_mode,
+                cd_A_x_mode=cd_x,
+                tire_compound="WET" if "Wet" in compound else "SLICK"
+            )
+
+            engine = SimulationEngine(params=params, weather=active_weather)
+            engine.dual_track.aero_balance_f = preset.aero_balance_front_pct / 100.0
+            engine.dual_track.bbw_base_front_pct = bbw_bias / 100.0
+
+            sim_telem: LapTelemetry = engine.run_transient_simulation(
+                track=track,
+                initial_soc=soc_init if soc_init <= 1.0 else soc_init / 100.0,
+                weather=active_weather
+            )
+
+            csv_text = export_to_motec_csv(sim_telem, track=track, vehicle_name="2026 Formula 1 Concept", session_name=f"{track.name} Qualifying Sim")
+            csv_bytes = csv_text.encode("utf-8")
+
+            self.send_response(200)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Disposition", f'attachment; filename="f1_2026_{track_key}_motec.csv"')
+            self.send_header("Content-Length", str(len(csv_bytes)))
+            self.end_headers()
+            self.wfile.write(csv_bytes)
         except Exception as e:
             import traceback
             traceback.print_exc()
