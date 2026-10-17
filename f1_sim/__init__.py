@@ -21,8 +21,8 @@ from .setup_sheet import SetupSheet, HOMOLOGATED_PRESETS
 from .motec_export import MoTecExporter, export_motec_csv, export_motec_ldx
 from .openf1_client import OpenF1Client
 from .physics_weather import WeatherConditions
-
 from .tracks_data import create_calendar_track, get_available_circuits_list, find_canonical_circuit_key
+from .pole_telemetry import get_real_pole_telemetry, get_pole_benchmark_info
 
 __all__ = [
     "VehicleParams",
@@ -59,6 +59,8 @@ __all__ = [
     "export_motec_ldx",
     "OpenF1Client",
     "WeatherConditions",
+    "get_real_pole_telemetry",
+    "get_pole_benchmark_info",
 ]
 
 

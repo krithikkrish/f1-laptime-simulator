@@ -659,3 +659,320 @@ def export_telemetry_to_mat(sim_telem: LapTelemetry, filepath: str, track: Optio
     scipy.io.savemat(filepath, mat_dict)
     return filepath
 
+
+def _apply_dark_chart_theme(
+    fig: go.Figure,
+    title: str,
+    y_title: str,
+    x_title: str = "Track Distance (meters)",
+    track: Optional[Track] = None,
+    scrub_dist: Optional[float] = None,
+    height: int = 340
+) -> go.Figure:
+    """Applies a clean, high-contrast dark theme with an individual legend on top-right."""
+    fig.update_layout(
+        title=dict(
+            text=title,
+            font=dict(size=14, color="#ffffff", family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif")
+        ),
+        paper_bgcolor="#0b0f19",
+        plot_bgcolor="#090d16",
+        height=height,
+        margin=dict(l=55, r=25, t=55, b=45),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1.0,
+            font=dict(size=11, color="#e2e8f0"),
+            bgcolor="rgba(11, 15, 25, 0.8)",
+            bordercolor="rgba(255, 255, 255, 0.1)",
+            borderwidth=1
+        ),
+        xaxis=dict(
+            title=dict(text=x_title, font=dict(size=11, color="#8b949e")),
+            gridcolor="#1b2333",
+            zerolinecolor="#1b2333",
+            tickfont=dict(color="#8b949e", size=10),
+            showspikes=True,
+            spikethickness=1,
+            spikedash="dot",
+            spikecolor="#ffa726"
+        ),
+        yaxis=dict(
+            title=dict(text=y_title, font=dict(size=11, color="#8b949e")),
+            gridcolor="#1b2333",
+            zerolinecolor="#1b2333",
+            tickfont=dict(color="#8b949e", size=10)
+        ),
+        hovermode="x unified"
+    )
+
+    # Sector lines
+    if track and hasattr(track, "sectors") and track.sectors:
+        for name, s_start, s_end in track.sectors:
+            if s_start > 0:
+                fig.add_vline(
+                    x=s_start,
+                    line=dict(color="#374151", width=1.0, dash="dash")
+                )
+
+    # Scrub cursor
+    if scrub_dist is not None:
+        fig.add_vline(
+            x=scrub_dist,
+            line=dict(color="#ffea00", width=1.8, dash="solid")
+        )
+
+    return fig
+
+
+def create_individual_speed_figure(
+    sim_telem: LapTelemetry,
+    ref_df: Optional[pd.DataFrame] = None,
+    track: Optional[Track] = None,
+    driver_label: str = "Real 2024 Pole Lap",
+    scrub_dist: Optional[float] = None
+) -> go.Figure:
+    """Dedicated Speed Comparison chart with its own separate legend."""
+    fig = go.Figure()
+
+    # 1. 2026 Simulation Car Speed
+    fig.add_trace(go.Scatter(
+        x=sim_telem.s,
+        y=sim_telem.v_kmh,
+        mode="lines",
+        name="🟢 2026 Sim Car",
+        line=dict(color="#00ff88", width=2.4),
+        hovertemplate="<b>2026 Sim:</b> %{y:.1f} km/h<extra></extra>"
+    ))
+
+    # 2. Real Pole Driver Speed
+    if ref_df is not None and "distance_m" in ref_df.columns and "speed" in ref_df.columns:
+        fig.add_trace(go.Scatter(
+            x=ref_df["distance_m"],
+            y=ref_df["speed"],
+            mode="lines",
+            name=f"⚪ {driver_label}",
+            line=dict(color="#00e5ff", width=2.0, dash="dot"),
+            hovertemplate=f"<b>{driver_label}:</b> %{{y:.1f}} km/h<extra></extra>"
+        ))
+
+    # 2026 Regulation Taper Markers
+    fig.add_hline(
+        y=290.0,
+        line=dict(color="#ffa726", width=1.0, dash="dash"),
+        annotation_text="2026 MGU-K Taper (290 km/h)",
+        annotation_position="top right",
+        annotation_font=dict(size=9, color="#ffa726")
+    )
+    fig.add_hline(
+        y=345.0,
+        line=dict(color="#ef5350", width=1.0, dash="dash"),
+        annotation_text="2026 MGU-K Cutoff (345 km/h)",
+        annotation_position="top right",
+        annotation_font=dict(size=9, color="#ef5350")
+    )
+
+    return _apply_dark_chart_theme(
+        fig,
+        title="🏎️ Speed Profile Comparison: 2026 Car vs Real Pole Lap",
+        y_title="Speed (km/h)",
+        track=track,
+        scrub_dist=scrub_dist,
+        height=320
+    )
+
+
+def create_individual_inputs_figure(
+    sim_telem: LapTelemetry,
+    ref_df: Optional[pd.DataFrame] = None,
+    track: Optional[Track] = None,
+    scrub_dist: Optional[float] = None
+) -> go.Figure:
+    """Dedicated Driver Inputs & Gearing chart with its own separate legend."""
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=sim_telem.s,
+        y=sim_telem.throttle * 100.0,
+        mode="lines",
+        name="🟢 Gas Pedal (%)",
+        line=dict(color="#00ff88", width=1.8),
+        hovertemplate="Gas: %{y:.0f}%<extra></extra>"
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=sim_telem.s,
+        y=sim_telem.brake * 100.0,
+        mode="lines",
+        name="🔴 Brake Pedal (%)",
+        line=dict(color="#ff1744", width=1.8),
+        fill="tozeroy",
+        fillcolor="rgba(255, 23, 68, 0.15)",
+        hovertemplate="Brake: %{y:.0f}%<extra></extra>"
+    ))
+
+    if hasattr(sim_telem, "gear") and sim_telem.gear is not None:
+        fig.add_trace(go.Scatter(
+            x=sim_telem.s,
+            y=sim_telem.gear * 12.5,  # Scale 1-8 to 0-100%
+            mode="lines",
+            name="⚪ Gear (1 to 8)",
+            line=dict(color="#e2e8f0", width=1.4, shape="hv"),
+            hovertemplate="Gear: %{customdata}<extra></extra>",
+            customdata=sim_telem.gear
+        ))
+
+    return _apply_dark_chart_theme(
+        fig,
+        title="🎮 Driver Inputs: Gas Pedal, Brake Pedal & Sequential Gearing",
+        y_title="Pedal Travel (%)",
+        track=track,
+        scrub_dist=scrub_dist,
+        height=280
+    )
+
+
+def create_individual_powertrain_figure(
+    sim_telem: LapTelemetry,
+    track: Optional[Track] = None,
+    scrub_dist: Optional[float] = None
+) -> go.Figure:
+    """Dedicated 2026 Hybrid Powertrain Deployment chart with its own separate legend."""
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=sim_telem.s,
+        y=sim_telem.p_ice_kw,
+        mode="lines",
+        name="🟡 1.6L V6 Petrol Engine (kW)",
+        line=dict(color="#ffea00", width=1.8),
+        hovertemplate="ICE Engine: %{y:.0f} kW<extra></extra>"
+    ))
+
+    # Split MGU-K into Deploy (positive) and Regen (negative)
+    mgu_deploy = np.maximum(sim_telem.p_mguk_kw, 0.0)
+    mgu_regen = np.minimum(sim_telem.p_mguk_kw, 0.0)
+
+    fig.add_trace(go.Scatter(
+        x=sim_telem.s,
+        y=mgu_deploy,
+        mode="lines",
+        name="🟠 350 kW Electric Boost (Deploy)",
+        line=dict(color="#ff9100", width=1.8),
+        fill="tozeroy",
+        fillcolor="rgba(255, 145, 0, 0.18)",
+        hovertemplate="Electric Boost: +%{y:.0f} kW<extra></extra>"
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=sim_telem.s,
+        y=mgu_regen,
+        mode="lines",
+        name="🔵 350 kW Regen Braking (Harvest)",
+        line=dict(color="#2979ff", width=1.8),
+        fill="tozeroy",
+        fillcolor="rgba(41, 121, 255, 0.20)",
+        hovertemplate="Harvesting: %{y:.0f} kW<extra></extra>"
+    ))
+
+    return _apply_dark_chart_theme(
+        fig,
+        title="⚡ 2026 Hybrid Powertrain: 400 kW Engine vs 350 kW Electric Motor",
+        y_title="Power (kW)",
+        track=track,
+        scrub_dist=scrub_dist,
+        height=280
+    )
+
+
+def create_individual_energy_tires_figure(
+    sim_telem: LapTelemetry,
+    track: Optional[Track] = None,
+    scrub_dist: Optional[float] = None
+) -> go.Figure:
+    """Dedicated Battery SoC & Tire Temperatures chart with its own separate legend."""
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=sim_telem.s,
+        y=sim_telem.soc_percent,
+        mode="lines",
+        name="🟣 Battery State-of-Charge (%)",
+        line=dict(color="#d500f9", width=2.0),
+        hovertemplate="Battery: %{y:.1f}%<extra></extra>"
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=sim_telem.s,
+        y=sim_telem.t_tire_c,
+        mode="lines",
+        name="🔴 Tire Temperature (°C)",
+        line=dict(color="#ff5252", width=1.8, dash="dot"),
+        hovertemplate="Tire Temp: %{y:.1f}°C<extra></extra>"
+    ))
+
+    return _apply_dark_chart_theme(
+        fig,
+        title="🔋 Battery Energy Storage (%) & Tire Bulk Temperature (°C)",
+        y_title="Level (% / °C)",
+        track=track,
+        scrub_dist=scrub_dist,
+        height=280
+    )
+
+
+def create_individual_chassis_figure(
+    sim_telem: LapTelemetry,
+    track: Optional[Track] = None,
+    scrub_dist: Optional[float] = None
+) -> go.Figure:
+    """Dedicated 4-Wheel Chassis Load Transfer chart with its own separate legend."""
+    fig = go.Figure()
+
+    # Convert vertical loads to kg (N / 9.81) for easy human understanding
+    f_front_kg = (getattr(sim_telem, "f_z_fl", np.zeros_like(sim_telem.time)) + 
+                  getattr(sim_telem, "f_z_fr", np.zeros_like(sim_telem.time))) / 9.81
+    f_rear_kg = (getattr(sim_telem, "f_z_rl", np.zeros_like(sim_telem.time)) + 
+                 getattr(sim_telem, "f_z_rr", np.zeros_like(sim_telem.time))) / 9.81
+    f_downforce_kg = sim_telem.f_downforce_n / 9.81
+
+    fig.add_trace(go.Scatter(
+        x=sim_telem.s,
+        y=f_front_kg,
+        mode="lines",
+        name="🔵 Front Axle Load (kg)",
+        line=dict(color="#38bdf8", width=1.8),
+        hovertemplate="Front Load: %{y:,.0f} kg<extra></extra>"
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=sim_telem.s,
+        y=f_rear_kg,
+        mode="lines",
+        name="🔴 Rear Axle Load (kg)",
+        line=dict(color="#f43f5e", width=1.8),
+        hovertemplate="Rear Load: %{y:,.0f} kg<extra></extra>"
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=sim_telem.s,
+        y=f_downforce_kg,
+        mode="lines",
+        name="🟢 Aero Downforce (kg)",
+        line=dict(color="#00ff88", width=1.6, dash="dash"),
+        hovertemplate="Downforce: %{y:,.0f} kg<extra></extra>"
+    ))
+
+    return _apply_dark_chart_theme(
+        fig,
+        title="🛞 Chassis Dynamic Loads & Downforce (kg): Braking & Cornering Transfer",
+        y_title="Vertical Load (kg)",
+        track=track,
+        scrub_dist=scrub_dist,
+        height=280
+    )
+
+

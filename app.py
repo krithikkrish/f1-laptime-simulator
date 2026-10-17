@@ -5,8 +5,9 @@ Accessible, Decongested, and Understandable for Everyone (Fans to Race Engineers
 Features:
 - Dual Modes:
   1. 🟢 Simple & Clean Mode (Default): Spacious, easy-to-understand cards, plain English, single speed graph, interactive track map with moving car.
-  2. ⚙️ Pro Engineering Mode: Multi-channel MoTeC telemetry, G-G friction circle, 15-LED shift lights, timing tower, and MATLAB exports.
+  2. ⚙️ Pro Engineering Mode: Individual modular telemetry charts with separate legends, G-G friction circle, setup sheet, and MATLAB exports.
 - All 24 FIA Grand Prix Calendar Circuits pre-cached with authentic 3D waypoints & real weather.
+- Authentic 2024 Saturday Qualifying (Q3) Pole Lap overlay from genuine telemetry.
 - 100% physically solved at 100 Hz Forward-Euler ODE resolution on every user input change.
 """
 
@@ -14,6 +15,7 @@ import os
 import io
 import time
 import json
+import textwrap
 import numpy as np
 import pandas as pd
 import scipy.io
@@ -32,12 +34,19 @@ from f1_sim.tracks_data import (
     get_available_circuits_list,
     find_canonical_circuit_key
 )
+from f1_sim.pole_telemetry import (
+    get_real_pole_telemetry,
+    get_pole_benchmark_info
+)
 from f1_sim.interactive_plots import (
-    create_telemetry_figure,
-    create_setup_comparison_figure,
-    create_delta_figure,
+    create_individual_speed_figure,
+    create_individual_inputs_figure,
+    create_individual_powertrain_figure,
+    create_individual_energy_tires_figure,
+    create_individual_chassis_figure,
     create_interactive_track_map,
-    create_gg_diagram
+    create_gg_diagram,
+    create_telemetry_figure
 )
 
 # Page configuration
@@ -49,38 +58,13 @@ st.set_page_config(
 )
 
 # Clean, Decongested, Premium Dark Glassmorphism Styling
-st.markdown("""
+st.markdown(textwrap.dedent("""
 <style>
     /* Dark smooth workstation background */
     .stApp {
         background: radial-gradient(circle at 10% 10%, #0d1118 0%, #05080c 100%);
         color: #f0f6fc;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    }
-    
-    /* Top Header */
-    .app-header {
-        background: linear-gradient(90deg, #161b26 0%, #0d1118 100%);
-        border-left: 6px solid #e10600;
-        border-radius: 10px;
-        padding: 16px 22px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .app-title {
-        font-size: 24px;
-        font-weight: 900;
-        color: #ffffff;
-        letter-spacing: -0.5px;
-        margin: 0;
-    }
-    .app-subtitle {
-        font-size: 13px;
-        color: #8b949e;
-        margin-top: 3px;
     }
     
     /* Hero Verdict Card (Big, Clear, Decongested) */
@@ -113,7 +97,7 @@ st.markdown("""
     .hero-text {
         font-size: 14px;
         color: #d1d5db;
-        max-width: 550px;
+        max-width: 580px;
         line-height: 1.5;
         text-align: right;
     }
@@ -152,36 +136,8 @@ st.markdown("""
         margin-top: 6px;
         line-height: 1.4;
     }
-    
-    /* Digital Cockpit Card */
-    .cockpit-box {
-        background: #090c10;
-        border: 2px solid #21262d;
-        border-radius: 10px;
-        padding: 16px 20px;
-        box-shadow: inset 0 2px 8px rgba(0,0,0,0.6);
-        margin-bottom: 16px;
-    }
-    .pedal-bar-bg {
-        background: #161b22;
-        border-radius: 4px;
-        height: 10px;
-        width: 100%;
-        overflow: hidden;
-        margin-top: 4px;
-    }
-    .pedal-fill-throttle {
-        background: linear-gradient(90deg, #00ff88, #38bdf8);
-        height: 100%;
-        border-radius: 4px;
-    }
-    .pedal-fill-brake {
-        background: linear-gradient(90deg, #f43f5e, #ff1744);
-        height: 100%;
-        border-radius: 4px;
-    }
 </style>
-""", unsafe_allow_html=True)
+""").strip(), unsafe_allow_html=True)
 
 
 @st.cache_resource
@@ -194,7 +150,7 @@ COUNTRY_FLAGS = {
     "Bahrain": "🇧🇭", "Saudi Arabia": "🇸🇦", "Australia": "🇦🇺", "Japan": "🇯🇵",
     "China": "🇨🇳", "United States": "🇺🇸", "USA": "🇺🇸", "Italy": "🇮🇹",
     "Monaco": "🇲🇨", "Canada": "🇨🇦", "Spain": "🇪🇸", "Austria": "🇦🇹",
-    "Great Britain": "🇬🇧", "Hungary": "🇭🇺", "Belgium": "🇧🇪", "Netherlands": "🇳🇱",
+    "Great Britain": "🇬🇧", "United Kingdom": "🇬🇧", "Hungary": "🇭🇺", "Belgium": "🇧🇪", "Netherlands": "🇳🇱",
     "Azerbaijan": "🇦🇿", "Singapore": "🇸🇬", "Mexico": "🇲🇽", "Brazil": "🇧🇷",
     "Qatar": "🇶🇦", "United Arab Emirates": "🇦🇪", "UAE": "🇦🇪"
 }
@@ -207,144 +163,76 @@ def format_lap_str(seconds: float) -> str:
     return f"{m}:{s:06.3f}" if m > 0 else f"{s:.3f} s"
 
 
-def create_simple_speed_figure(sim_telem: LapTelemetry, ref_df=None, track=None, scrub_dist=None, driver_label="Real Pole Lap"):
-    fig = go.Figure()
-    
-    # 1. Sim car speed
-    fig.add_trace(go.Scatter(
-        x=sim_telem.s,
-        y=sim_telem.v_kmh,
-        mode="lines",
-        name="🏎️ 2026 Simulation Car",
-        line=dict(color="#00ff88", width=3),
-        hovertemplate="Track Distance: %{x:.0f} m<br>Your Speed: %{y:.1f} km/h<extra></extra>"
-    ))
-    
-    # 2. Reference pole driver if available
-    if ref_df is not None and "distance_m" in ref_df.columns and "speed" in ref_df.columns:
-        fig.add_trace(go.Scatter(
-            x=ref_df["distance_m"],
-            y=ref_df["speed"],
-            mode="lines",
-            name=f"🏁 {driver_label}",
-            line=dict(color="#00e5ff", width=2, dash="dot"),
-            hovertemplate="Track Distance: %{x:.0f} m<br>Pole Speed: %{y:.1f} km/h<extra></extra>"
-        ))
-        
-    # Vertical cursor at scrub distance
-    if scrub_dist is not None:
-        fig.add_vline(x=scrub_dist, line=dict(color="#ffd600", width=2, dash="dash"),
-                      annotation_text=f"Car: {scrub_dist:.0f}m", annotation_position="top left",
-                      annotation_font=dict(color="#ffd600", size=10))
-        
-    fig.update_layout(
-        title=dict(text="📈 Speed Profile Around the Circuit (km/h)", font=dict(size=15, color="#ffffff")),
-        xaxis=dict(title="Track Distance (Meters)", gridcolor="#1f2937", zeroline=False),
-        yaxis=dict(title="Speed (km/h)", gridcolor="#1f2937", zeroline=False),
-        template="plotly_dark",
-        height=320,
-        margin=dict(l=50, r=30, t=50, b=40),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-    )
-    return fig
-
-
 # ==========================================
-# SIDEBAR CONTROLS & DYNAMIC TUNING
+# SIDEBAR CONTROLS (CLEAN & ACCESSIBLE)
 # ==========================================
 with st.sidebar:
     st.markdown("### 🏁 Grand Prix Track")
     
-    # All 24 circuits pre-cached
-    available_circuits = get_available_circuits_list()
+    circuits_data = get_available_circuits_list()
+    circ_options = [c["key"] for c in circuits_data]
+    circ_labels = {c["key"]: c["label"] for c in circuits_data}
     
-    default_circuit_idx = 0
-    for idx, c in enumerate(available_circuits):
-        if c.get("key") == "monza":
-            default_circuit_idx = idx
-            break
-            
-    def format_circuit_label(c: dict) -> str:
-        flag = COUNTRY_FLAGS.get(c.get("country", ""), "🏁")
-        return f"{flag} {c.get('country', '')} — {c.get('short_name', '')}"
-        
-    selected_circuit_idx = st.selectbox(
-        "Select Circuit (All 24 Available)",
-        range(len(available_circuits)),
-        index=default_circuit_idx,
-        format_func=lambda i: format_circuit_label(available_circuits[i]),
-        help="All 24 Grand Prix tracks are ready with real track coordinates, weather, and real pole lap benchmark!"
+    # Default to Miami or Monza
+    default_idx = 5 if len(circ_options) > 5 else 0
+    selected_circuit = st.selectbox(
+        "Choose Circuit",
+        circ_options,
+        index=default_idx,
+        format_func=lambda k: circ_labels.get(k, k),
+        help="Select any of the 24 official Formula 1 World Championship circuits."
     )
-    selected_circuit = available_circuits[selected_circuit_idx]
-    circuit_key = selected_circuit["key"]
-    track, real_weather, track_meta = create_calendar_track(circuit_key, ds=1.0)
+    
+    track, active_weather, track_meta = create_calendar_track(selected_circuit, ds=1.0)
+    
+    # Load authentic real-world 2024 qualifying pole lap telemetry
+    pole_info = get_pole_benchmark_info(track_meta)
+    ref_df = get_real_pole_telemetry(track_meta.get("meeting_key"), track.length)
+    
+    st.info(f"📊 **Pole Reference:** 2024 {track_meta.get('country')} GP  \n"
+            f"**Driver:** {pole_info['driver_name']} ({pole_info['team_name']})  \n"
+            f"**Official Q3 Pole:** {pole_info['lap_time_str']}")
     
     st.markdown("---")
     st.markdown("### 🏎️ Simple Car Setup")
     
     preset_choice = st.selectbox(
-        "Car Driving Setup",
-        [
-            "Balanced Grand Prix Spec",
-            "Monza Low-Drag Spec",
-            "High-Downforce Monaco Spec",
-            "Wet-Weather Spec"
-        ],
+        "Driving Style Preset",
+        ["Balanced Baseline (2026 Official)", "High Speed (Low Drag)", "High Downforce (Cornering)", "Wet / Rain Setup"],
         index=0,
-        help="Pick a driving style. Balanced works everywhere; Low-Drag is fastest on straights; High-Downforce grips best in corners."
-    )
-    current_setup = SETUP_PRESETS[preset_choice]
-
-    fuel_m = st.slider(
-        "Fuel on Board (kg)", 
-        10.0, 110.0, 
-        float(current_setup.fuel_load_kg), 
-        5.0,
-        help="Light (40 kg = Fast Qualifying Lap) | Heavy (110 kg = Full Race Start)"
+        help="One-click aerodynamic and chassis tuning presets for the 2026 car."
     )
     
-    compound = st.selectbox(
-        "Tire Compound", 
-        ["Soft Slick (Fastest)", "Medium Slick (Standard)", "Hard Slick (Durable)", "Intermediate", "Full Wet"], 
-        index=0,
-        help="Soft tires give the highest grip and fastest lap time."
-    )
-
-    # Clean collapsed expander for engineering nerd dials
-    with st.expander("⚙️ Advanced 2026 Engine & Wing Tuning", expanded=False):
-        st.caption("All default values strictly match official FIA 2026 Technical Regulations.")
+    if "High Speed" in preset_choice:
+        current_setup = SETUP_PRESETS["monza"]
+    elif "High Downforce" in preset_choice:
+        current_setup = SETUP_PRESETS["monaco"]
+    elif "Wet" in preset_choice:
+        current_setup = SETUP_PRESETS["wet"]
+    else:
+        current_setup = SETUP_PRESETS["balanced"]
         
-        ice_p = st.slider("Engine Power (kW)", 350.0, 450.0, float(current_setup.ice_power_kw), 5.0,
-                          help="Official 2026 rule: 400 kW (~536 bhp) running on 100% sustainable fuels.")
-        mguk_p = st.slider("Electric Motor Power (kW)", 200.0, 400.0, float(current_setup.mguk_power_kw), 10.0,
-                           help="Official 2026 rule: 350 kW (~470 bhp). Nearly 3x the boost of older F1 cars!")
-        v_taper = st.slider("Electric Boost Taper Speed (km/h)", 260.0, 310.0, float(current_setup.mguk_taper_start_kmh), 5.0,
-                            help="Speed where electric power begins dialing back to save battery (FIA rule: 290 km/h).")
-        v_cutoff = st.slider("Electric Cutoff Speed (km/h)", 320.0, 360.0, float(current_setup.mguk_taper_end_kmh), 5.0,
-                             help="Speed where car runs purely on petrol engine (FIA rule: 345 km/h).")
-        soc_init = st.slider("Battery Start Charge (%)", 20.0, 100.0, float(current_setup.initial_soc_pct), 5.0)
-        
-        cl_z = st.slider("Corner Downforce (Cl*A)", 2.2, 4.4, float(current_setup.cl_a_z_mode), 0.05)
-        cd_x = st.slider("Straight Low-Drag (Cd*A)", 0.40, 0.85, float(current_setup.cd_a_x_mode), 0.02)
-        bbw_bias = st.slider("Front Brake Bias (%)", 52.0, 62.0, float(current_setup.brake_bias_front_pct), 0.5)
+    col_tire, col_fuel = st.columns(2)
+    with col_tire:
+        compound = st.selectbox("Tire", ["Soft Slick", "Medium Slick", "Hard Slick", "Wet Treaded"], index=0)
+    with col_fuel:
+        fuel_m = st.slider("Fuel (kg)", min_value=10.0, max_value=110.0, value=35.0, step=5.0, help="Qualifying run: 20-35 kg | Full race tank: 100-110 kg")
 
-        if st.button("✨ Reset to Official FIA 2026 Regulations", use_container_width=True):
-            st.rerun()
-
-    # Weather
-    with st.expander("🌦️ Weather Station Telemetry", expanded=False):
-        air_t = st.slider("Air Temp (°C)", 10.0, 45.0, float(real_weather.air_temp_c), 1.0)
-        track_t = st.slider("Track Temp (°C)", 15.0, 60.0, float(real_weather.track_temp_c), 1.0)
-        is_wet = st.checkbox("🌧️ Wet Track Condition", value=False)
-        active_weather = WeatherConditions(
-            air_temp_c=air_t, track_temp_c=track_t, humidity_pct=real_weather.humidity_pct,
-            pressure_hpa=real_weather.pressure_hpa, wind_speed_ms=real_weather.wind_speed_ms,
-            rainfall=1 if is_wet else 0
-        )
+    # Collapsible Advanced Tuning
+    with st.expander("🛠️ Advanced Tuning (Optional)", expanded=False):
+        st.caption("Defaulted to official 2026 FIA technical specifications.")
+        ice_p = st.slider("ICE Petrol Engine (kW)", 350.0, 430.0, current_setup.p_ice_kw, 5.0)
+        mguk_p = st.slider("Electric MGU-K Motor (kW)", 250.0, 360.0, current_setup.p_mguk_kw, 5.0)
+        v_taper = st.slider("Electric Taper Speed (km/h)", 270.0, 310.0, current_setup.v_taper_kmh, 5.0)
+        v_cutoff = st.slider("Electric Cutoff Speed (km/h)", 320.0, 360.0, current_setup.v_cutoff_kmh, 5.0)
+        cl_z = st.slider("Corner Downforce (Cl*A)", 2.5, 4.5, current_setup.cl_a_z_mode, 0.1)
+        cd_x = st.slider("Straight Drag (Cd*A)", 0.6, 1.3, current_setup.cd_a_x_mode, 0.05)
+        bbw_bias = st.slider("Brake Balance (% Front)", 52.0, 60.0, current_setup.brake_bias_front_pct, 0.5)
+        soc_init = st.slider("Starting Battery (%)", 20.0, 100.0, 100.0, 5.0)
 
 
 # ==========================================
-# DYNAMIC 100 Hz PHYSICS INTEGRATION LOOP
+# SIMULATION SOLVER (100 Hz FORWARD EULER)
 # ==========================================
 params_a = VehicleParams(
     mass_empty=current_setup.car_empty_mass_kg,
@@ -374,14 +262,11 @@ sim_telem_a: LapTelemetry = engine_a.run_transient_simulation(
 )
 ode_duration_ms = (time.perf_counter() - t_start_ode) * 1000.0
 
-# Pole reference data
-ref_lap_time = float(track_meta.get("pole_lap_time")) if track_meta.get("pole_lap_time") else None
-pole_driver_full = track_meta.get("pole_driver", "Charles Leclerc")
-pole_team = track_meta.get("pole_team", "Ferrari")
+# Pole reference comparison
+ref_lap_time = pole_info.get("lap_time_s")
 delta_lap = (sim_telem_a.lap_time - ref_lap_time) if ref_lap_time is not None else None
-
 sim_lap_str = format_lap_str(sim_telem_a.lap_time)
-ref_lap_str = format_lap_str(ref_lap_time)
+ref_lap_str = pole_info.get("lap_time_str", "N/A")
 
 
 # ==========================================
@@ -389,32 +274,18 @@ ref_lap_str = format_lap_str(ref_lap_time)
 # ==========================================
 flag = COUNTRY_FLAGS.get(track_meta.get("country", ""), "🏁")
 
-col_hdr1, col_hdr2 = st.columns([3.2, 1.8])
+col_hdr1, col_hdr2 = st.columns([3.0, 2.0])
 with col_hdr1:
-    st.markdown(f"""
-    <div style="display:flex; align-items:center; gap:12px;">
-        <span style="font-size:32px;">🏎️</span>
-        <div>
-            <div style="font-size:22px; font-weight:900; color:#ffffff; letter-spacing:-0.5px;">
-                {flag} {track.name.upper()}
-            </div>
-            <div style="font-size:12px; color:#8b949e;">
-                Formula 1 2026 Lap Simulator | Track Length: <strong>{track.length:,.0f} m</strong> | Setup: <strong>{preset_choice}</strong>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"## {flag} {track.name.upper()}")
+    st.caption(f"🏁 **Comparing Against:** {pole_info['full_label']} (Official 2024 Q3 Qualifying) | Track Length: **{track.length:,.0f} m**")
 
 with col_hdr2:
     view_mode = st.radio(
         "Display Mode",
         ["🟢 Simple & Clean (For Everyone)", "⚙️ Pro Engineering Telemetry"],
         index=0,
-        horizontal=True,
-        label_visibility="collapsed"
+        horizontal=True
     )
-
-st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
 
 # ==========================================
@@ -426,23 +297,27 @@ if "Simple" in view_mode:
         if delta_lap <= 0:
             v_badge_color = "#00ff88"
             v_badge_bg = "rgba(0, 255, 136, 0.15)"
-            v_badge_title = f"🟢 {abs(delta_lap):.3f}s FASTER THAN REAL POLE!"
-            v_desc = f"Great lap! Your 2026 car clocked <strong>{sim_lap_str}</strong>, beating the real qualifying pole lap ({ref_lap_str} set by {pole_driver_full} in {pole_team}) by <strong>{abs(delta_lap):.3f} seconds</strong> thanks to 350 kW instant electric boost!"
+            v_badge_title = f"🟢 {abs(delta_lap):.3f}s FASTER THAN 2024 POLE!"
+            v_desc = (f"Great lap! Your 2026 car clocked <strong>{sim_lap_str}</strong>, beating the real 2024 pole lap "
+                      f"({ref_lap_str} set by {pole_info['driver_name']} in the {pole_info['team_name']}) by "
+                      f"<strong>{abs(delta_lap):.3f} seconds</strong> thanks to 350 kW instant electric boost and active aero!")
         else:
             v_badge_color = "#f59e0b"
             v_badge_bg = "rgba(245, 158, 11, 0.15)"
-            v_badge_title = f"🟡 {delta_lap:.3f}s BEHIND REAL POLE"
-            v_desc = f"Solid lap! Your 2026 car clocked <strong>{sim_lap_str}</strong>. You are trailing the real pole lap ({ref_lap_str} set by {pole_driver_full}) by <strong>{delta_lap:.3f} seconds</strong>. Tip: Try switching to Soft Slick tires or lighter fuel in the sidebar."
+            v_badge_title = f"🟡 {delta_lap:.3f}s BEHIND 2024 POLE"
+            v_desc = (f"Solid lap! Your 2026 car clocked <strong>{sim_lap_str}</strong>. You are trailing the 2024 pole lap "
+                      f"({ref_lap_str} set by {pole_info['driver_name']}) by <strong>{delta_lap:.3f} seconds</strong>. "
+                      f"Tip: Try switching to Soft Slick tires or lighter fuel in the sidebar.")
     else:
         v_badge_color = "#38bdf8"
         v_badge_bg = "rgba(56, 189, 248, 0.15)"
         v_badge_title = "🏁 SIMULATION COMPLETE"
         v_desc = f"Your 2026 car completed the lap in <strong>{sim_lap_str}</strong> with a top speed of <strong>{np.max(sim_telem_a.v_kmh):.1f} km/h</strong>."
 
-    st.markdown(f"""
+    st.markdown(textwrap.dedent(f"""
     <div class="hero-verdict-card" style="border-left: 6px solid {v_badge_color};">
         <div>
-            <div style="font-size:11px; font-weight:800; color:#8b949e; text-transform:uppercase; letter-spacing:1px;">SIMULATED LAP TIME</div>
+            <div style="font-size:11px; font-weight:800; color:#8b949e; text-transform:uppercase; letter-spacing:1px;">2026 SIMULATED LAP TIME</div>
             <div class="hero-laptime">{sim_lap_str}</div>
             <div class="hero-badge" style="background:{v_badge_bg}; color:{v_badge_color}; border:1px solid {v_badge_color};">
                 {v_badge_title}
@@ -451,48 +326,52 @@ if "Simple" in view_mode:
         <div class="hero-text">
             {v_desc}
             <div style="margin-top:8px; font-size:11px; color:#8b949e; font-family:monospace;">
-                ⚡ Solved 100 Hz physics dynamically in {ode_duration_ms:.0f} ms | Car Mass: {params_a.total_mass:.0f} kg
+                ⚡ Solved at 100 Hz in {ode_duration_ms:.0f} ms | Benchmark: 2024 {track_meta.get('country')} GP (Q3)
             </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+    """).strip(), unsafe_allow_html=True)
 
     # 2. Four Big Decongested Stat Cards
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.markdown(f"""
+        st.markdown(textwrap.dedent(f"""
         <div class="stat-card">
             <div>
                 <div class="stat-title" style="color:#00ff88;">⏱️ LAP TIME</div>
                 <div class="stat-val" style="color:#00ff88;">{sim_lap_str}</div>
-                <div class="stat-desc">Real Pole: <strong style="color:#ffffff;">{ref_lap_str}</strong><br>({pole_driver_full} - {pole_team})</div>
+                <div class="stat-desc">2024 Real Pole: <strong style="color:#ffffff;">{ref_lap_str}</strong><br>({pole_info['driver_name']} - {pole_info['team_name']})</div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """).strip(), unsafe_allow_html=True)
+        
     with c2:
         top_kmh = np.max(sim_telem_a.v_kmh)
         top_mph = top_kmh * 0.621371
-        st.markdown(f"""
+        ref_top = f"{ref_df['speed'].max():.0f} km/h" if (ref_df is not None and 'speed' in ref_df.columns) else "N/A"
+        st.markdown(textwrap.dedent(f"""
         <div class="stat-card">
             <div>
                 <div class="stat-title" style="color:#00e5ff;">🚀 TOP SPEED</div>
                 <div class="stat-val" style="color:#00e5ff;">{top_kmh:.0f} <span style="font-size:14px;">km/h</span></div>
-                <div class="stat-desc"><strong>{top_mph:.0f} mph</strong> reached on the main straight using low-drag X-Mode wings.</div>
+                <div class="stat-desc"><strong>{top_mph:.0f} mph</strong> reached on main straight.<br>(2024 Pole top speed: <strong style="color:#ffffff;">{ref_top}</strong>)</div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """).strip(), unsafe_allow_html=True)
+        
     with c3:
-        st.markdown(f"""
+        st.markdown(textwrap.dedent(f"""
         <div class="stat-card">
             <div>
                 <div class="stat-title" style="color:#ff9100;">⚡ ELECTRIC BOOST</div>
                 <div class="stat-val" style="color:#ff9100;">{params_a.p_mguk_deploy_max/1e3:.0f} kW</div>
-                <div class="stat-desc">Delivered <strong>+470 horsepower</strong> of instant electric torque out of every corner.</div>
+                <div class="stat-desc">Delivered <strong>+470 horsepower</strong> of instant electric acceleration out of every turn.</div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """).strip(), unsafe_allow_html=True)
+        
     with c4:
-        st.markdown(f"""
+        st.markdown(textwrap.dedent(f"""
         <div class="stat-card">
             <div>
                 <div class="stat-title" style="color:#d500f9;">🔋 BATTERY HEALTH</div>
@@ -500,13 +379,13 @@ if "Simple" in view_mode:
                 <div class="stat-desc">Recharged <strong>{sim_telem_a.net_energy_harvested_mj:.2f} MJ</strong> of electricity during braking!</div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """).strip(), unsafe_allow_html=True)
 
-    st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 
-    # 3. Interactive Driving Experience (Track Map + Simple Cockpit)
+    # 3. Interactive Driving Experience (Track Map + Clean Cockpit)
     st.markdown("### 🏎️ Live Lap Visualizer")
-    st.caption("Drag the slider to drive the car around the circuit and see its live speed and gear!")
+    st.caption("Drag the slider to drive the car around the circuit and see live cockpit telemetry!")
     
     col_scrub1, col_scrub2 = st.columns([4, 1])
     with col_scrub1:
@@ -531,66 +410,52 @@ if "Simple" in view_mode:
     cur_thr = sim_telem_a.throttle[idx_now] * 100.0
     cur_brk = sim_telem_a.brake[idx_now] * 100.0
     cur_mgu = sim_telem_a.p_mguk_kw[idx_now]
-    cur_aero = "Active Aero Open (Low Drag)" if (sim_telem_a.aero_mode is not None and sim_telem_a.aero_mode[idx_now] == "X_MODE") else "High Downforce Wing"
+    cur_aero = "Active Aero Open (Low Drag X-Mode)" if (sim_telem_a.aero_mode is not None and sim_telem_a.aero_mode[idx_now] == "X_MODE") else "High Downforce (Z-Mode)"
 
     col_track_view, col_dash_view = st.columns([1.6, 1.0], gap="medium")
     
     with col_track_view:
-        # Interactive clean track map
         fig_track = create_interactive_track_map(track, sim_telem_a, scrub_dist=scrub_m)
         st.plotly_chart(fig_track, use_container_width=True)
         
     with col_dash_view:
-        # Simple, uncluttered cockpit dashboard
-        st.markdown(f"""
-        <div class="cockpit-box">
-            <div style="font-size:11px; font-weight:800; color:#8b949e; text-transform:uppercase; margin-bottom:6px;">LIVE COCKPIT GAUGES</div>
+        # Native Streamlit Cockpit Container (Zero HTML markdown bug risk)
+        with st.container(border=True):
+            st.caption("🏎️ **LIVE COCKPIT TELEMETRY**")
             
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <div>
-                    <div style="font-size:11px; color:#8b949e; font-weight:700;">SPEED</div>
-                    <div style="font-size:38px; font-weight:900; color:#00ff88; font-family:monospace; line-height:1;">
-                        {cur_v_kmh:.0f} <span style="font-size:14px; color:#8b949e;">km/h</span>
-                    </div>
-                    <div style="font-size:13px; color:#8b949e; font-family:monospace;">{cur_v_mph:.0f} mph</div>
-                </div>
-                <div style="background:#06080c; border:2px solid #00ff88; border-radius:8px; width:64px; height:64px; display:flex; justify-content:center; align-items:center; font-size:42px; font-weight:900; color:#00ff88; font-family:monospace;">
-                    {cur_gear}
-                </div>
-            </div>
+            c_gauge1, c_gauge2 = st.columns([2, 1])
+            with c_gauge1:
+                st.metric(
+                    label="SPEED", 
+                    value=f"{cur_v_kmh:.0f} km/h", 
+                    delta=f"{cur_v_mph:.0f} mph", 
+                    delta_color="off"
+                )
+            with c_gauge2:
+                st.metric(
+                    label="GEAR", 
+                    value=f"{cur_gear}"
+                )
+                
+            st.progress(min(cur_thr / 100.0, 1.0), text=f"Gas Pedal: {cur_thr:.0f}%")
+            st.progress(min(cur_brk / 100.0, 1.0), text=f"Brake Pedal: {cur_brk:.0f}%")
             
-            <div style="margin-bottom:10px;">
-                <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700;">
-                    <span style="color:#00ff88;">GAS PEDAL</span>
-                    <span>{cur_thr:.0f}%</span>
-                </div>
-                <div class="pedal-bar-bg">
-                    <div class="pedal-fill-throttle" style="width:{cur_thr}%;"></div>
-                </div>
-            </div>
-            
-            <div style="margin-bottom:14px;">
-                <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700;">
-                    <span style="color:#f43f5e;">BRAKE PEDAL</span>
-                    <span>{cur_brk:.0f}%</span>
-                </div>
-                <div class="pedal-bar-bg">
-                    <div class="pedal-fill-brake" style="width:{cur_brk}%;"></div>
-                </div>
-            </div>
-            
-            <div style="border-top:1px solid #1f2937; padding-top:10px; font-size:12px; line-height:1.6;">
-                <div>⚡ <strong>Motor:</strong> <span style="color:{'#ff9100' if cur_mgu >= 0 else '#38bdf8'}; font-weight:800;">{'+' + str(int(cur_mgu)) + ' kW Deploying' if cur_mgu >= 0 else str(int(cur_mgu)) + ' kW Recharging'}</span></div>
-                <div>🪽 <strong>Wings:</strong> <span style="color:#00e5ff; font-weight:700;">{cur_aero}</span></div>
-                <div>🛞 <strong>Tires:</strong> <span style="color:#ffffff;">{compound} ({np.max(sim_telem_a.t_tire_c):.0f}°C)</span></div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+            st.divider()
+            mgu_str = f"⚡ +{int(cur_mgu)} kW (Deploying)" if cur_mgu >= 0 else f"⚡ {int(cur_mgu)} kW (Regenerating)"
+            st.markdown(f"**Motor:** `{mgu_str}`")
+            st.markdown(f"**Aero:** `{cur_aero}`")
+            st.caption(f"🛞 **Tires:** {compound} ({np.max(sim_telem_a.t_tire_c):.0f}°C)")
 
-    # 4. Clean Speed Chart
+    # 4. Clean Speed Chart With Separate Legend & Authentic 2024 Pole Line
     st.markdown("### 📈 Speed Over the Lap")
-    st.caption("See where your car accelerated to top speed on straights and slowed down for corners.")
-    fig_speed = create_simple_speed_figure(sim_telem_a, track=track, scrub_dist=scrub_m, driver_label=f"{pole_driver_full} (Real Pole)")
+    st.caption(f"Comparing your 2026 car against **{pole_info['driver_name']} ({pole_info['team_name']})'s real 2024 pole lap**. Notice where 2026 pulls ahead on straights!")
+    fig_speed = create_individual_speed_figure(
+        sim_telem=sim_telem_a,
+        ref_df=ref_df,
+        track=track,
+        driver_label=f"2024 Pole: {pole_info['driver_name']} ({pole_info['team_name']})",
+        scrub_dist=scrub_m
+    )
     st.plotly_chart(fig_speed, use_container_width=True)
 
     # 5. Friendly Beginner's Guide (Collapsible)
@@ -621,22 +486,58 @@ if "Simple" in view_mode:
 # ==========================================
 else:
     st.markdown("### 🛠️ Pro Motorsport Engineering Workstation")
-    st.caption("High-density multi-channel telemetry suite matching McLaren Applied ATLAS and MoTeC i2 Pro standards.")
+    st.caption("Modular telemetry channels with individual legends, G-G friction circles, and vehicle dynamics data.")
 
     tab_telem_pro, tab_gg_pro, tab_setup_pro, tab_export_pro = st.tabs([
-        "📊 Multi-Channel Telemetry (6-Channel)",
+        "📊 Engineering Telemetry Channels",
         "⭕ G-G Friction Circle",
         "📋 FIA Homologation Setup Sheet",
         "💾 MoTeC / MATLAB / HTML Export"
     ])
 
     with tab_telem_pro:
-        fig_pro = create_telemetry_figure(
+        st.markdown("#### 1. Speed Profile & Lap Time Comparison")
+        st.caption("Overlay of 2026 simulation speed vs authentic 2024 qualifying pole telemetry.")
+        fig_pro_speed = create_individual_speed_figure(
             sim_telem=sim_telem_a,
+            ref_df=ref_df,
             track=track,
-            driver_label=f"{pole_driver_full} (Real Pole)"
+            driver_label=f"2024 Pole: {pole_info['driver_name']} ({pole_info['team_name']})"
         )
-        st.plotly_chart(fig_pro, use_container_width=True)
+        st.plotly_chart(fig_pro_speed, use_container_width=True)
+
+        st.markdown("#### 2. Driver Inputs & Sequential Transmission")
+        st.caption("Gas pedal %, brake pedal % with hydraulic line pressure, and 8-speed sequential gear shifts.")
+        fig_pro_inputs = create_individual_inputs_figure(
+            sim_telem=sim_telem_a,
+            ref_df=ref_df,
+            track=track
+        )
+        st.plotly_chart(fig_pro_inputs, use_container_width=True)
+
+        st.markdown("#### 3. 2026 Hybrid Powertrain Deployment")
+        st.caption("Internal combustion engine power (kW), 350 kW MGU-K corner acceleration boost, and regenerative braking.")
+        fig_pro_pwr = create_individual_powertrain_figure(
+            sim_telem=sim_telem_a,
+            track=track
+        )
+        st.plotly_chart(fig_pro_pwr, use_container_width=True)
+
+        st.markdown("#### 4. Battery Energy Storage & Tire Temperatures")
+        st.caption("Battery state-of-charge (SoC %) across the lap and Pirelli bulk tire thermal window.")
+        fig_pro_energy = create_individual_energy_tires_figure(
+            sim_telem=sim_telem_a,
+            track=track
+        )
+        st.plotly_chart(fig_pro_energy, use_container_width=True)
+
+        st.markdown("#### 5. 4-Wheel Chassis Load Transfer & Aerodynamic Downforce")
+        st.caption("Axle vertical loads (kg) accounting for longitudinal braking weight transfer and lateral cornering roll.")
+        fig_pro_chassis = create_individual_chassis_figure(
+            sim_telem=sim_telem_a,
+            track=track
+        )
+        st.plotly_chart(fig_pro_chassis, use_container_width=True)
 
     with tab_gg_pro:
         col_g1, col_g2 = st.columns([2.2, 1.0])
@@ -709,5 +610,5 @@ else:
             st.download_button("🚩 Download MoTeC Beacons (.ldx)", motec_ldx_str, f"f1_2026_{track.name.split()[0].lower()}_beacons.ldx", "application/xml", use_container_width=True)
         with col_ex2:
             st.download_button("💻 Download MATLAB Workspace (.mat)", mat_bytes, f"f1_2026_{track.name.split()[0].lower()}_matlab.mat", "application/x-matlab-data", use_container_width=True)
-            html_telem = fig_pro.to_html(include_plotlyjs="cdn")
+            html_telem = fig_pro_speed.to_html(include_plotlyjs="cdn")
             st.download_button("🌐 Download Interactive HTML (.html)", html_telem, f"f1_2026_{track.name.split()[0].lower()}_interactive.html", "text/html", use_container_width=True)

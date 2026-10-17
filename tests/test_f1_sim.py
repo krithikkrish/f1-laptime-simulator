@@ -186,5 +186,33 @@ class TestSimulationEngine(unittest.TestCase):
         self.assertTrue(np.all(telem.f_z_rr > 0.0))
 
 
+class TestPoleTelemetry(unittest.TestCase):
+    def test_pole_benchmark_info(self):
+        """Metadata describes official 2024 Qualifying Q3 Pole Lap."""
+        from f1_sim import get_pole_benchmark_info, get_real_pole_telemetry
+        meta = {
+            "pole_driver": "Lando NORRIS",
+            "pole_team": "McLaren",
+            "pole_lap_time": 87.597
+        }
+        info = get_pole_benchmark_info(meta)
+        self.assertEqual(info["championship_year"], 2024)
+        self.assertEqual(info["driver_name"], "Lando NORRIS")
+        self.assertEqual(info["lap_time_str"], "1:27.597")
+        self.assertIn("Official Saturday Qualifying", info["session_type"])
+
+    def test_real_pole_telemetry_loading(self):
+        """Authentic 2024 telemetry loads with distance aligned to circuit."""
+        from f1_sim import get_real_pole_telemetry
+        # Meeting 1234 = Miami GP 2024
+        df = get_real_pole_telemetry(meeting_key=1234, track_length=5713.9)
+        self.assertIsNotNone(df)
+        self.assertIn("speed", df.columns)
+        self.assertIn("distance_m", df.columns)
+        self.assertAlmostEqual(df["distance_m"].max(), 5713.9, delta=1.0)
+        self.assertGreater(df["speed"].max(), 300.0)
+
+
 if __name__ == "__main__":
     unittest.main()
+
