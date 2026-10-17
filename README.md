@@ -1,0 +1,155 @@
+# 🏎️ 2026 F1 Transient Lap-Time & Dual-Track Vehicle Dynamics Simulator
+
+> **Industrial-grade motorsport simulation workstation** engineering the official 2026 Formula 1 technical regulations at **0.01-second ($dt = 100\text{ Hz}$) Forward-Euler ODE resolution**. Featuring a **4-Wheel Dual-Track chassis model** with dynamic normal load transfer, suspension roll stiffness, Pacejka Magic Formula tire kinematics, an **8-speed seamless-shift sequential gearbox**, active aerodynamics (**Z-Mode** & **X-Mode**), **350 kW MGU-K tapering**, all **24 FIA World Championship Grand Prix circuits**, a **McLaren Applied ATLAS / MoTeC i2 Pro dark workstation UI**, plain-English race engineer telemetry insights, and official **MoTeC i2 Pro & MATLAB R2026a export engines**.
+
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Streamlit Workstation](https://img.shields.io/badge/Workstation-Streamlit%201.40%2B-FF4B4B.svg)](https://streamlit.io/)
+[![MATLAB R2026a](https://img.shields.io/badge/MATLAB-R2026a%20Suite-0076A8.svg)](https://www.mathworks.com/)
+[![MoTeC i2 Pro Compatible](https://img.shields.io/badge/Telemetry-MoTeC%20i2%20Pro-red.svg)](https://www.motec.com.au/)
+
+---
+
+## 🌟 Core Highlights
+
+### 1. Complete 24-Circuit FIA World Championship Calendar
+- **Authentic 3D GPS Trajectories & Elevation**: Pre-cached and verified 3D waypoints for all 24 Grand Prix circuits—from high-speed temples like Monza and Spa to tight street labyrinths like Monaco, Singapore, and Baku.
+- **Zero Fallback**: Every circuit loads instantaneously with its authentic track geometry, timing sectors (S1, S2, S3), real weather station readings, and real qualifying pole lap benchmarks.
+- **24 Circuits Supported**:
+  - 🇧🇭 Bahrain (Sakhir) | 🇸🇦 Saudi Arabia (Jeddah) | 🇦🇺 Australia (Melbourne) | 🇯🇵 Japan (Suzuka)
+  - 🇨🇳 China (Shanghai) | 🇺🇸 Miami | 🇮🇹 Emilia Romagna (Imola) | 🇲🇨 Monaco (Monte Carlo)
+  - 🇨🇦 Canada (Montreal) | 🇪🇸 Spain (Barcelona) | 🇦🇹 Austria (Spielberg) | 🇬🇧 Great Britain (Silverstone)
+  - 🇭🇺 Hungary (Hungaroring) | 🇧🇪 Belgium (Spa-Francorchamps) | 🇳🇱 Netherlands (Zandvoort) | 🇮🇹 Italy (Monza)
+  - 🇦🇿 Azerbaijan (Baku) | 🇸🇬 Singapore (Marina Bay) | 🇺🇸 United States (Austin) | 🇲🇽 Mexico (Mexico City)
+  - 🇧🇷 Brazil (Interlagos) | 🇺🇸 Las Vegas | 🇶🇦 Qatar (Lusail) | 🇦🇪 Abu Dhabi (Yas Marina)
+
+### 2. Authentic 2026 Technical Regulations Defaults with Dynamic Tuning
+- **50/50 Power Split**: 400 kW (~536 bhp) internal combustion engine running on 100% sustainable fuels + 350 kW (~470 bhp) electric MGU-K motor (totaling over 1,000 bhp).
+- **MGU-K Taper Curve**: Full 350 kW electric boost available on corner exit up to 290 km/h, tapering linearly to 0 kW at 345 km/h to manage the 4.0 MJ per lap battery limit.
+- **Active Aerodynamics (Z-Mode & X-Mode)**: High-downforce Z-Mode in cornering and heavy braking vs low-drag X-Mode on straights (~28% drag reduction).
+- **Chassis & Minimum Mass**: Homologated 888 kg minimum mass (768 kg empty + 80 kg driver ballast + 40 kg qualifying fuel).
+- **Dynamic Engineering Levers**: All parameters default to official 2026 regulations, but remain fully dynamic and tunable via interactive sliders with plain-English tooltips. A one-click **"✨ Reset All to Official 2026 FIA Regulations"** restores homologated baseline specs immediately.
+
+### 3. Plain-English Telemetry Insights & Beginner's Guide
+- **Radio Debrief Verdict**: Clear race engineer explanation comparing the 2026 simulation lap time against the real qualifying pole lap in seconds and M:SS.mmm format.
+- **4 Visual Insight Cards**:
+  1. ⚡ **350 kW MGU-K Boost**: Explains how much electric energy was deployed and how the motor accelerated the car out of corners.
+  2. 💨 **Active Aero Wings**: Explains how downforce glued the car through turns and how flaps opened on straights to reach top speeds.
+  3. 🛑 **Braking & 350 kW Harvesting**: Explains stopping G-forces and how much free electrical energy was regenerated into the battery.
+  4. 🔋 **Battery Health & Tire Grip**: Explains finish battery state-of-charge and tire thermal condition.
+- **Beginner's Guide Expander**: An easy-to-read explainer breaking down 2026 hybrid power, active aero, tapering, brake-by-wire, and how to read telemetry graphs.
+
+### 4. 4-Wheel / Dual-Track Chassis Dynamics (`f1_sim/vehicle_dynamics.py`)
+- **4-Corner Dynamic Normal Load Transfer**:
+  Computes individual vertical tire loads ($F_{z,fl}, F_{z,fr}, F_{z,rl}, F_{z,rr}$) resolving:
+  $$\Delta F_{\text{long}} = M_{\text{total}} \cdot a_x \cdot \frac{h_{\text{cg}}}{L}$$
+  $$\Delta F_{\text{lat},f} = \frac{M_{\text{total}} a_y}{t_f} \left[ \frac{h_{\text{roll},f} b}{L} + \left(\frac{K_{\phi,f}}{K_{\phi,f} + K_{\phi,r}}\right) (h_{\text{cg}} - h_{\text{roll}}) \right]$$
+  $$\Delta F_{\text{lat},r} = \frac{M_{\text{total}} a_y}{t_r} \left[ \frac{h_{\text{roll},r} a}{L} + \left(\frac{K_{\phi,r}}{K_{\phi,f} + K_{\phi,r}}\right) (h_{\text{cg}} - h_{\text{roll}}) \right]$$
+- **Suspension Roll Stiffness Distribution**: Front and rear anti-roll bar (ARB) and spring wheel rates dictate axle roll stiffness ($K_{\phi,f}, K_{\phi,r}$), controlling mechanical understeer/oversteer balance.
+- **Pacejka '02 Magic Formula Slip Model**: Combines load sensitivity $\mu(F_z)$ and thermal window $\mu(T_{\text{tire}})$ with lateral slip angles ($\alpha_f, \alpha_r$) and kinematic Ackermann steering angles ($\delta$).
+- **Brake-by-Wire (BBW) Dynamic Migration**: Static baseline bias (56.5% front) dynamically migrates forward under heavy deceleration to maintain rear stability during 350 kW MGU-K regeneration.
+
+### 5. 8-Speed Sequential Seamless-Shift Transmission (`f1_sim/transmission.py`)
+- **FIA Homologated Gear Ratios**: 8 forward speeds ($1^{\text{st}}: 12.85$ to $8^{\text{th}}: 4.02$ overall ratio with final drive).
+- **Engine RPM Dynamics**: Continuous rotational speed tracking ($4,000 - 12,100\text{ RPM}$) across Pirelli 18-inch wheels ($r_{\text{wheel}} = 0.360\text{ m}$).
+- **15ms Seamless-Shift Torque Cuts**: 85% torque attenuation during shift transitions replicating hydraulic sequential actuators.
+
+### 6. Official MoTeC i2 Pro & MATLAB R2026a Export
+- **MoTeC CSV (`.csv`)**: 100 Hz calibrated telemetry with official header syntax (`Format,MoTeC CSV File`, `Sample Rate,100`) and engineering units (`km/h`, `kW`, `g`, `°C`, `N`, `deg`).
+- **MoTeC LDX Beacons (`.ldx`)**: XML timing beacon markers for start/finish line and timing sectors 1, 2, and 3. Drag and drop directly into MoTeC i2 Pro!
+- **Native MATLAB R2026a Suite (`matlab/`)**: Standalone MATLAB integrator (`f1_lts_simulation.m`), batch runner (`run_matlab_batch.m`), and `.mat` workspace importer.
+
+---
+
+## 🚀 Quickstart Guide
+
+### 1. Launch the Interactive Workstation
+
+```bash
+# Clone the repository
+git clone https://github.com/krithikkrish/f1-laptime-simulator.git
+cd f1-laptime-simulator
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Launch workstation
+streamlit run app.py
+```
+Open **`http://localhost:8501`** in your browser:
+- Select from **all 24 Grand Prix circuits** on the FIA Formula 1 calendar.
+- Read plain-English race engineer debriefs and visual telemetry cards.
+- Scrub along the track using the synchronized slider to drive the **Cockpit Steering Wheel Gauge Cluster**.
+- Download official **MoTeC i2 Pro CSV/LDX** and **MATLAB `.mat`** files with one click.
+
+### 2. Command-Line Simulation Runner
+
+Run simulations from terminal across any circuit:
+```bash
+# Run Spa-Francorchamps with MoTeC & MATLAB export
+python3 run_simulation.py --track spa --setup balanced --export_motec --export_matlab
+
+# Run Monaco Grand Prix with High-Downforce Monaco Spec
+python3 run_simulation.py --track monaco --setup monaco --export_motec
+
+# Run Monza with Monza Low-Drag Spec
+python3 run_simulation.py --track monza --setup monza --export_motec
+```
+
+### 3. Run the Automated Test Suite
+
+```bash
+python3 -m unittest discover tests/
+```
+Runs 13 rigorous unit and integration tests covering:
+- Static and dynamic 4-wheel vertical load conservation ($F_z = M g + F_{\text{downforce}}$).
+- Pitch load transfer during braking and roll load transfer during cornering.
+- Sequential transmission gear selection, RPM bounds, and shift cut torque attenuation.
+- Homologated setup presets and parameter conversions.
+- MoTeC CSV header syntax and LDX beacon XML structure.
+- Full 0.01s Forward-Euler simulation convergence.
+
+---
+
+## 📁 Repository Structure
+
+```
+f1-laptime-simulator/
+├── app.py                      # McLaren ATLAS / MoTeC i2 Pro Dark Telemetry Workstation
+├── requirements.txt            # Python dependencies (numpy, scipy, matplotlib, pandas, streamlit, plotly, fastf1)
+├── run_simulation.py           # CLI simulation runner with 24-track selector and export flags
+├── optimize_lap.py             # SciPy SLSQP hybrid deployment trajectory optimizer
+├── data_cache/                 # Automatic local disk cache for OpenF1 API sessions
+├── tests/
+│   └── test_f1_sim.py          # 13-test automated unit and integration suite
+├── f1_sim/
+│   ├── __init__.py             # Package API exports
+│   ├── all_tracks.json         # Master 24-circuit 3D waypoints, elevation, weather & pole benchmarks
+│   ├── tracks_data.py          # Calendar track factory and fuzzy circuit matching engine
+│   ├── vehicle_dynamics.py     # 4-wheel dual-track chassis, pitch/roll load transfer, Pacejka, BBW
+│   ├── transmission.py         # 8-speed sequential gearbox, engine RPM dynamics, 15ms shift cuts
+│   ├── setup_sheet.py          # SetupSheet dataclass and FIA homologated presets (Monza, Monaco, etc.)
+│   ├── motec_export.py         # MoTeC i2 Pro CSV exporter and LDX timing beacon generator
+│   ├── lts_engine.py           # 0.01s Forward-Euler numerical integration engine
+│   ├── interactive_plots.py    # Plotly multi-channel telemetry, A vs B delta traces, 3D track map
+│   ├── openf1_client.py        # Real-world OpenF1 API client with retry backoff
+│   ├── physics_weather.py      # CIPM-2007 humid air density, track temp grip & wind vector
+│   ├── params.py               # 2026 technical regulations & vehicle dynamics parameters
+│   ├── aero.py                 # Active aerodynamics (Z-Mode & X-Mode)
+│   ├── powertrain.py           # 400kW ICE + 350kW MGU-K with 290-345 km/h taper
+│   ├── tire_model.py           # Load-sensitive friction ellipse & thermal balance ODE
+│   ├── track.py                # Periodic cubic spline track geometry & heading calculator
+│   └── telemetry.py            # Matplotlib plotting routines
+├── matlab/
+│   ├── f1_lts_simulation.m     # High-precision 0.01s Forward-Euler engine in pure MATLAB
+│   ├── import_f1_session.m     # Session & weather importer from .mat files
+│   ├── plot_telemetry_interactive.m # Linked multi-channel interactive MATLAB figures
+│   ├── run_matlab_batch.m      # Turnkey batch simulation and KPI report script
+│   └── monza_session.mat       # Sample export session ready for immediate execution
+└── output/                     # Generated telemetry plots, MoTeC CSVs, LDX beacons, and .mat files
+```
+
+---
+
+## 📄 License
+This project is licensed under the MIT License.

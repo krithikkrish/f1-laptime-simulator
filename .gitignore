@@ -1,0 +1,28 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Scratch & temporary workspace
+scratch/
+.DS_Store
+*.swp
+*~
+
+# Output artifacts
+output/*.csv
+output/*.mat
+output/*.ldx
+output/*.png
+!output/.gitkeep
+
+# Data cache (master datasets bundled in f1_sim/all_tracks.json)
+data_cache/*.json
+!data_cache/.gitkeep
