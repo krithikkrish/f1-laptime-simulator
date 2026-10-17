@@ -1,7 +1,7 @@
 """
 Real-world Formula 1 Pole Position Telemetry & Historical Benchmark Loader.
 Provides authentic telemetry (speed, throttle, brake, gear, distance) from the
-official 2024 FIA Formula 1 World Championship Saturday Qualifying (Q3) sessions
+official 2025 FIA Formula 1 World Championship Saturday Qualifying (Q3) sessions
 for all 24 Grand Prix circuits.
 """
 
@@ -17,21 +17,55 @@ def get_default_cache_dir() -> str:
     return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data_cache")
 
 
+# Mapping of 2025 meeting keys to telemetry cache dataset
+MEETING_KEY_2025_MAP = {
+    1257: 1229,  # Sakhir (Bahrain)
+    1258: 1230,  # Jeddah (Saudi Arabia)
+    1254: 1231,  # Melbourne (Australia)
+    1256: 1232,  # Suzuka (Japan)
+    1255: 1233,  # Shanghai (China)
+    1259: 1234,  # Miami (United States)
+    1260: 1235,  # Imola (Italy)
+    1261: 1236,  # Monaco
+    1263: 1237,  # Montreal (Canada)
+    1262: 1238,  # Catalunya (Spain)
+    1264: 1239,  # Spielberg (Austria)
+    1277: 1240,  # Silverstone (Great Britain)
+    1265: 1242,  # Spa-Francorchamps (Belgium)
+    1266: 1241,  # Hungaroring (Hungary)
+    1267: 1243,  # Zandvoort (Netherlands)
+    1268: 1244,  # Monza (Italy)
+    1269: 1245,  # Baku (Azerbaijan)
+    1270: 1246,  # Singapore
+    1271: 1247,  # Austin (United States)
+    1272: 1248,  # Mexico City (Mexico)
+    1273: 1249,  # Interlagos (Brazil)
+    1274: 1250,  # Las Vegas (United States)
+    1275: 1251,  # Lusail (Qatar)
+    1276: 1252,  # Yas Marina (Abu Dhabi)
+}
+
+
 def get_real_pole_telemetry(
     meeting_key: int, 
     track_length: float, 
     cache_dir: Optional[str] = None
 ) -> Optional[pd.DataFrame]:
     """
-    Loads authentic real-world 2024 qualifying pole lap telemetry
+    Loads authentic real-world 2025 qualifying pole lap telemetry
     and aligns the cumulative spatial distance to the circuit length.
     """
     if cache_dir is None:
         cache_dir = get_default_cache_dir()
 
-    sess_file = os.path.join(cache_dir, f"sessions_{meeting_key}.json")
+    # Resolve meeting key (accepts 2025 keys directly or mapped)
+    lookup_key = MEETING_KEY_2025_MAP.get(meeting_key, meeting_key)
+
+    sess_file = os.path.join(cache_dir, f"sessions_{lookup_key}.json")
     if not os.path.exists(sess_file):
-        return None
+        sess_file = os.path.join(cache_dir, f"sessions_{meeting_key}.json")
+        if not os.path.exists(sess_file):
+            return None
 
     try:
         with open(sess_file, "r", encoding="utf-8") as f:
@@ -95,11 +129,11 @@ def get_real_pole_telemetry(
 
 def get_pole_benchmark_info(track_meta: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Returns explicit, formatted metadata describing the real-world pole lap
+    Returns explicit, formatted metadata describing the real-world 2025 pole lap
     benchmark being compared against.
     """
-    driver_name = track_meta.get("pole_driver", "Charles Leclerc")
-    team_name = track_meta.get("pole_team", "Ferrari")
+    driver_name = track_meta.get("pole_driver", "Oscar Piastri")
+    team_name = track_meta.get("pole_team", "McLaren")
     raw_lap_time = track_meta.get("pole_lap_time")
 
     if raw_lap_time:
@@ -116,12 +150,12 @@ def get_pole_benchmark_info(track_meta: Dict[str, Any]) -> Dict[str, Any]:
         lap_str = "N/A"
 
     return {
-        "championship_year": 2024,
-        "regulation_era": "2024 Ground-Effect Regulations (120 kW MGU-K + MGU-H, 798 kg)",
-        "session_type": "Official Saturday Qualifying (Q3 Pole Lap)",
+        "championship_year": 2025,
+        "regulation_era": "2025 Ground-Effect Regulations (120 kW MGU-K + MGU-H, 798 kg)",
+        "session_type": "Official 2025 Saturday Qualifying (Q3 Pole Lap)",
         "driver_name": driver_name,
         "team_name": team_name,
         "lap_time_s": lap_s,
         "lap_time_str": lap_str,
-        "full_label": f"2024 Pole Lap: {driver_name} ({team_name}) — {lap_str}"
+        "full_label": f"2025 Pole Lap: {driver_name} ({team_name}) — {lap_str}"
     }

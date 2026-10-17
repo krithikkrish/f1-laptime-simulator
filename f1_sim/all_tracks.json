@@ -1,6 +1,6 @@
 {
   "sakhir": {
-    "meeting_key": 1229,
+    "meeting_key": 1257,
     "short_name": "Sakhir",
     "country": "Bahrain",
     "official_name": "Sakhir Grand Prix Circuit (Bahrain)",
@@ -28,9 +28,9 @@
     "pressure_hpa": 1019.1,
     "wind_speed_ms": 2.0,
     "wind_dir_deg": 55.9,
-    "pole_driver": "Charles LECLERC",
-    "pole_team": "Ferrari",
-    "pole_lap_time": 89.165,
+    "pole_driver": "Oscar PIASTRI",
+    "pole_team": "McLaren",
+    "pole_lap_time": 89.841,
     "x": [
       -40.6,
       -38.33,
@@ -408,10 +408,12 @@
       -15.89,
       -15.9,
       -15.9
-    ]
+    ],
+    "year": 2025,
+    "session_key": 10010
   },
   "jeddah": {
-    "meeting_key": 1230,
+    "meeting_key": 1258,
     "short_name": "Jeddah",
     "country": "Saudi Arabia",
     "official_name": "Jeddah Grand Prix Circuit (Saudi Arabia)",
@@ -441,7 +443,7 @@
     "wind_dir_deg": 113.6,
     "pole_driver": "Max VERSTAPPEN",
     "pole_team": "Red Bull Racing",
-    "pole_lap_time": 87.472,
+    "pole_lap_time": 87.294,
     "x": [
       -115.5,
       -133.35,
@@ -813,10 +815,12 @@
       11.79,
       11.81,
       11.8
-    ]
+    ],
+    "year": 2025,
+    "session_key": 10018
   },
   "melbourne": {
-    "meeting_key": 1231,
+    "meeting_key": 1254,
     "short_name": "Melbourne",
     "country": "Australia",
     "official_name": "Melbourne Grand Prix Circuit (Australia)",
@@ -844,9 +848,9 @@
     "pressure_hpa": 1024.0,
     "wind_speed_ms": 1.5,
     "wind_dir_deg": 143.4,
-    "pole_driver": "Max VERSTAPPEN",
-    "pole_team": "Red Bull Racing",
-    "pole_lap_time": 75.915,
+    "pole_driver": "Lando NORRIS",
+    "pole_team": "McLaren",
+    "pole_lap_time": 75.096,
     "x": [
       -80.8,
       -114.03,
@@ -1221,10 +1225,12 @@
       8.5,
       8.73,
       8.7
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9689
   },
   "suzuka": {
-    "meeting_key": 1232,
+    "meeting_key": 1256,
     "short_name": "Suzuka",
     "country": "Japan",
     "official_name": "Suzuka Grand Prix Circuit (Japan)",
@@ -1254,7 +1260,7 @@
     "wind_dir_deg": 176.1,
     "pole_driver": "Max VERSTAPPEN",
     "pole_team": "Red Bull Racing",
-    "pole_lap_time": 88.197,
+    "pole_lap_time": 86.983,
     "x": [
       153.4,
       186.02,
@@ -1632,10 +1638,12 @@
       73.55,
       75.12,
       75.02
-    ]
+    ],
+    "year": 2025,
+    "session_key": 10002
   },
   "shanghai": {
-    "meeting_key": 1233,
+    "meeting_key": 1255,
     "short_name": "Shanghai",
     "country": "China",
     "official_name": "Shanghai Grand Prix Circuit (China)",
@@ -1663,9 +1671,9 @@
     "pressure_hpa": 1006.2,
     "wind_speed_ms": 0.8,
     "wind_dir_deg": 122.4,
-    "pole_driver": "Max VERSTAPPEN",
-    "pole_team": "Red Bull Racing",
-    "pole_lap_time": 95.606,
+    "pole_driver": "Lewis HAMILTON",
+    "pole_team": "Ferrari",
+    "pole_lap_time": 90.849,
     "x": [
       6.1,
       -39.38,
@@ -2040,10 +2048,12 @@
       14.0,
       13.98,
       14.0
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9989
   },
   "miami": {
-    "meeting_key": 1234,
+    "meeting_key": 1259,
     "short_name": "Miami",
     "country": "United States",
     "official_name": "Miami Grand Prix Circuit (United States)",
@@ -2071,9 +2081,9 @@
     "pressure_hpa": 1014.3,
     "wind_speed_ms": 3.1,
     "wind_dir_deg": 161.1,
-    "pole_driver": "Lando NORRIS",
-    "pole_team": "McLaren",
-    "pole_lap_time": 87.597,
+    "pole_driver": "Kimi ANTONELLI",
+    "pole_team": "Mercedes",
+    "pole_lap_time": 86.482,
     "x": [
       120.3,
       162.7,
@@ -2448,10 +2458,12 @@
       24.54,
       24.6,
       24.7
-    ]
+    ],
+    "year": 2025,
+    "session_key": 10024
   },
   "imola": {
-    "meeting_key": 1235,
+    "meeting_key": 1260,
     "short_name": "Imola",
     "country": "Italy",
     "official_name": "Imola Grand Prix Circuit (Italy)",
@@ -2479,9 +2491,9 @@
     "pressure_hpa": 1008.0,
     "wind_speed_ms": 2.9,
     "wind_dir_deg": 128.9,
-    "pole_driver": "Max VERSTAPPEN",
-    "pole_team": "Red Bull Racing",
-    "pole_lap_time": 74.746,
+    "pole_driver": "Oscar PIASTRI",
+    "pole_team": "McLaren",
+    "pole_lap_time": 74.67,
     "x": [
       -138.4,
       -181.2,
@@ -2853,10 +2865,12 @@
       78.76,
       78.49,
       78.5
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9983
   },
   "monte_carlo": {
-    "meeting_key": 1236,
+    "meeting_key": 1261,
     "short_name": "Monte Carlo",
     "country": "Monaco",
     "official_name": "Monte Carlo Grand Prix Circuit (Monaco)",
@@ -2884,9 +2898,9 @@
     "pressure_hpa": 1016.9,
     "wind_speed_ms": 1.1,
     "wind_dir_deg": 239.3,
-    "pole_driver": "Charles LECLERC",
-    "pole_team": "Ferrari",
-    "pole_lap_time": 70.27,
+    "pole_driver": "Lando NORRIS",
+    "pole_team": "McLaren",
+    "pole_lap_time": 69.954,
     "x": [
       -764.7,
       -766.55,
@@ -3258,10 +3272,12 @@
       50.4,
       50.24,
       50.2
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9975
   },
   "montreal": {
-    "meeting_key": 1237,
+    "meeting_key": 1263,
     "short_name": "Montreal",
     "country": "Canada",
     "official_name": "Montreal Grand Prix Circuit (Canada)",
@@ -3291,7 +3307,7 @@
     "wind_dir_deg": 160.5,
     "pole_driver": "George RUSSELL",
     "pole_team": "Mercedes",
-    "pole_lap_time": 71.742,
+    "pole_lap_time": 70.899,
     "x": [
       332.2,
       337.73,
@@ -3666,10 +3682,12 @@
       13.06,
       12.97,
       12.91
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9959
   },
   "catalunya": {
-    "meeting_key": 1238,
+    "meeting_key": 1262,
     "short_name": "Catalunya",
     "country": "Spain",
     "official_name": "Catalunya Grand Prix Circuit (Spain)",
@@ -3697,9 +3715,9 @@
     "pressure_hpa": 1003.7,
     "wind_speed_ms": 1.4,
     "wind_dir_deg": 194.9,
-    "pole_driver": "Lando NORRIS",
+    "pole_driver": "Oscar PIASTRI",
     "pole_team": "McLaren",
-    "pole_lap_time": 71.383,
+    "pole_lap_time": 71.546,
     "x": [
       156.1,
       133.93,
@@ -4077,10 +4095,12 @@
       171.02,
       170.91,
       170.81
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9967
   },
   "spielberg": {
-    "meeting_key": 1239,
+    "meeting_key": 1264,
     "short_name": "Spielberg",
     "country": "Austria",
     "official_name": "Spielberg Grand Prix Circuit (Austria)",
@@ -4108,9 +4128,9 @@
     "pressure_hpa": 940.2,
     "wind_speed_ms": 1.0,
     "wind_dir_deg": 138.0,
-    "pole_driver": "Max VERSTAPPEN",
-    "pole_team": "Red Bull Racing",
-    "pole_lap_time": 64.686,
+    "pole_driver": "Lando NORRIS",
+    "pole_team": "McLaren",
+    "pole_lap_time": 63.971,
     "x": [
       124.9,
       88.26,
@@ -4485,10 +4505,12 @@
       721.57,
       721.48,
       721.5
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9951
   },
   "silverstone": {
-    "meeting_key": 1240,
+    "meeting_key": 1277,
     "short_name": "Silverstone",
     "country": "United Kingdom",
     "official_name": "Silverstone Grand Prix Circuit (United Kingdom)",
@@ -4516,9 +4538,9 @@
     "pressure_hpa": 987.3,
     "wind_speed_ms": 1.8,
     "wind_dir_deg": 208.6,
-    "pole_driver": "George RUSSELL",
-    "pole_team": "Mercedes",
-    "pole_lap_time": 85.819,
+    "pole_driver": "Max VERSTAPPEN",
+    "pole_team": "Red Bull Racing",
+    "pole_lap_time": 84.892,
     "x": [
       -201.9,
       -172.47,
@@ -4896,10 +4918,12 @@
       196.57,
       196.21,
       196.2
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9943
   },
   "hungaroring": {
-    "meeting_key": 1241,
+    "meeting_key": 1266,
     "short_name": "Hungaroring",
     "country": "Hungary",
     "official_name": "Hungaroring Grand Prix Circuit (Hungary)",
@@ -4929,7 +4953,7 @@
     "wind_dir_deg": 235.8,
     "pole_driver": "Lando NORRIS",
     "pole_team": "McLaren",
-    "pole_lap_time": 75.227,
+    "pole_lap_time": 74.89,
     "x": [
       -153.5,
       -183.69,
@@ -5301,10 +5325,12 @@
       238.8,
       238.8,
       238.8
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9924
   },
   "spa-francorchamps": {
-    "meeting_key": 1242,
+    "meeting_key": 1265,
     "short_name": "Spa-Francorchamps",
     "country": "Belgium",
     "official_name": "Spa-Francorchamps Grand Prix Circuit (Belgium)",
@@ -5332,9 +5358,9 @@
     "pressure_hpa": 966.5,
     "wind_speed_ms": 1.1,
     "wind_dir_deg": 111.8,
-    "pole_driver": "Max VERSTAPPEN",
-    "pole_team": "Red Bull Racing",
-    "pole_lap_time": 113.159,
+    "pole_driver": "Oscar PIASTRI",
+    "pole_team": "McLaren",
+    "pole_lap_time": 100.51,
     "x": [
       -43.0,
       -76.66,
@@ -5706,10 +5732,12 @@
       414.67,
       413.63,
       413.68
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9930
   },
   "zandvoort": {
-    "meeting_key": 1243,
+    "meeting_key": 1267,
     "short_name": "Zandvoort",
     "country": "Netherlands",
     "official_name": "Zandvoort Grand Prix Circuit (Netherlands)",
@@ -5737,9 +5765,9 @@
     "pressure_hpa": 1002.4,
     "wind_speed_ms": 4.1,
     "wind_dir_deg": 206.7,
-    "pole_driver": "Lando NORRIS",
+    "pole_driver": "Oscar PIASTRI",
     "pole_team": "McLaren",
-    "pole_lap_time": 69.673,
+    "pole_lap_time": 68.662,
     "x": [
       41.0,
       55.54,
@@ -6111,10 +6139,12 @@
       53.7,
       53.7,
       53.7
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9916
   },
   "monza": {
-    "meeting_key": 1244,
+    "meeting_key": 1268,
     "short_name": "Monza",
     "country": "Italy",
     "official_name": "Monza Grand Prix Circuit (Italy)",
@@ -6142,9 +6172,9 @@
     "pressure_hpa": 995.9,
     "wind_speed_ms": 1.4,
     "wind_dir_deg": 199.8,
-    "pole_driver": "Lando NORRIS",
-    "pole_team": "McLaren",
-    "pole_lap_time": 79.327,
+    "pole_driver": "Max VERSTAPPEN",
+    "pole_team": "Red Bull Racing",
+    "pole_lap_time": 78.792,
     "x": [
       -138.1,
       -133.87,
@@ -6522,10 +6552,12 @@
       187.39,
       187.1,
       187.1
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9908
   },
   "baku": {
-    "meeting_key": 1245,
+    "meeting_key": 1269,
     "short_name": "Baku",
     "country": "Azerbaijan",
     "official_name": "Baku Grand Prix Circuit (Azerbaijan)",
@@ -6555,7 +6587,7 @@
     "wind_dir_deg": 124.4,
     "pole_driver": "Charles LECLERC",
     "pole_team": "Ferrari",
-    "pole_lap_time": 101.365,
+    "pole_lap_time": 100.825,
     "x": [
       73.0,
       121.8,
@@ -6930,10 +6962,11 @@
       -24.53,
       -24.59,
       -24.6
-    ]
+    ],
+    "year": 2025
   },
   "singapore": {
-    "meeting_key": 1246,
+    "meeting_key": 1270,
     "short_name": "Singapore",
     "country": "Singapore",
     "official_name": "Singapore Grand Prix Circuit (Singapore)",
@@ -6961,9 +6994,9 @@
     "pressure_hpa": 1007.6,
     "wind_speed_ms": 1.4,
     "wind_dir_deg": 192.8,
-    "pole_driver": "Lando NORRIS",
-    "pole_team": "McLaren",
-    "pole_lap_time": 89.525,
+    "pole_driver": "George RUSSELL",
+    "pole_team": "Mercedes",
+    "pole_lap_time": 89.158,
     "x": [
       97.5,
       91.06,
@@ -7338,10 +7371,12 @@
       18.8,
       18.8,
       18.8
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9892
   },
   "austin": {
-    "meeting_key": 1247,
+    "meeting_key": 1271,
     "short_name": "Austin",
     "country": "United States",
     "official_name": "Austin Grand Prix Circuit (United States)",
@@ -7371,7 +7406,7 @@
     "wind_dir_deg": 156.2,
     "pole_driver": "Max VERSTAPPEN",
     "pole_team": "Red Bull Racing",
-    "pole_lap_time": 92.833,
+    "pole_lap_time": 92.143,
     "x": [
       -154.5,
       -117.22,
@@ -7743,10 +7778,12 @@
       130.2,
       130.2,
       130.2
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9879
   },
   "mexico_city": {
-    "meeting_key": 1248,
+    "meeting_key": 1272,
     "short_name": "Mexico City",
     "country": "Mexico",
     "official_name": "Mexico City Grand Prix Circuit (Mexico)",
@@ -7774,9 +7811,9 @@
     "pressure_hpa": 784.7,
     "wind_speed_ms": 1.4,
     "wind_dir_deg": 265.2,
-    "pole_driver": "Carlos SAINZ",
-    "pole_team": "Ferrari",
-    "pole_lap_time": 75.946,
+    "pole_driver": "Lando NORRIS",
+    "pole_team": "McLaren",
+    "pole_lap_time": 75.586,
     "x": [
       -57.9,
       -20.65,
@@ -8151,10 +8188,12 @@
       2226.94,
       2226.89,
       2226.9
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9873
   },
   "interlagos": {
-    "meeting_key": 1249,
+    "meeting_key": 1273,
     "short_name": "Interlagos",
     "country": "Brazil",
     "official_name": "Interlagos Grand Prix Circuit (Brazil)",
@@ -8182,9 +8221,9 @@
     "pressure_hpa": 926.7,
     "wind_speed_ms": 2.1,
     "wind_dir_deg": 189.6,
-    "pole_driver": "Oscar PIASTRI",
+    "pole_driver": "Lando NORRIS",
     "pole_team": "McLaren",
-    "pole_lap_time": 68.899,
+    "pole_lap_time": 69.243,
     "x": [
       -364.7,
       -355.55,
@@ -8562,10 +8601,12 @@
       778.51,
       777.23,
       777.18
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9860
   },
   "las_vegas": {
-    "meeting_key": 1250,
+    "meeting_key": 1274,
     "short_name": "Las Vegas",
     "country": "United States",
     "official_name": "Las Vegas Grand Prix Circuit (United States)",
@@ -8593,9 +8634,9 @@
     "pressure_hpa": 941.3,
     "wind_speed_ms": 0.7,
     "wind_dir_deg": 171.2,
-    "pole_driver": "George RUSSELL",
-    "pole_team": "Mercedes",
-    "pole_lap_time": 92.312,
+    "pole_driver": "Lando NORRIS",
+    "pole_team": "McLaren",
+    "pole_lap_time": 107.934,
     "x": [
       166.4,
       203.26,
@@ -8967,10 +9008,12 @@
       606.85,
       606.65,
       606.61
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9854
   },
   "lusail": {
-    "meeting_key": 1251,
+    "meeting_key": 1275,
     "short_name": "Lusail",
     "country": "Qatar",
     "official_name": "Lusail Grand Prix Circuit (Qatar)",
@@ -8998,9 +9041,9 @@
     "pressure_hpa": 1019.0,
     "wind_speed_ms": 1.6,
     "wind_dir_deg": 94.0,
-    "pole_driver": "Lando NORRIS",
+    "pole_driver": "Oscar PIASTRI",
     "pole_team": "McLaren",
-    "pole_lap_time": 81.012,
+    "pole_lap_time": 80.055,
     "x": [
       -77.1,
       -100.29,
@@ -9375,10 +9418,12 @@
       14.47,
       14.55,
       14.5
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9841
   },
   "yas_marina_circuit": {
-    "meeting_key": 1252,
+    "meeting_key": 1276,
     "short_name": "Yas Marina Circuit",
     "country": "United Arab Emirates",
     "official_name": "Yas Marina Circuit Grand Prix Circuit (United Arab Emirates)",
@@ -9406,9 +9451,9 @@
     "pressure_hpa": 1017.3,
     "wind_speed_ms": 1.5,
     "wind_dir_deg": 268.3,
-    "pole_driver": "Lando NORRIS",
-    "pole_team": "McLaren",
-    "pole_lap_time": 82.595,
+    "pole_driver": "Max VERSTAPPEN",
+    "pole_team": "Red Bull Racing",
+    "pole_lap_time": 82.207,
     "x": [
       50.9,
       95.54,
@@ -9786,6 +9831,8 @@
       -23.85,
       -23.89,
       -23.9
-    ]
+    ],
+    "year": 2025,
+    "session_key": 9835
   }
 }

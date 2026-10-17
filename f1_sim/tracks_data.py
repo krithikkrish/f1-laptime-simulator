@@ -111,22 +111,27 @@ def find_canonical_circuit_key(name_or_key: Union[str, int]) -> str:
                 return k
 
     query = str(name_or_key).strip().lower()
-    if query in CIRCUIT_ALIASES:
-        return CIRCUIT_ALIASES[query]
-
-    # Search in all_tracks dictionary
+    query_clean = query.replace("_", " ").replace("-", " ")
+    
+    # Direct match in all_tracks dictionary first
     all_data = get_all_tracks_data()
     if query in all_data:
         return query
+    if query in CIRCUIT_ALIASES:
+        return CIRCUIT_ALIASES[query]
+    if query_clean in CIRCUIT_ALIASES:
+        return CIRCUIT_ALIASES[query_clean]
 
     # Substring search
     for alias, canon in CIRCUIT_ALIASES.items():
-        if alias in query or query in alias:
+        if alias in query or query in alias or alias in query_clean or query_clean in alias:
             return canon
 
     for k, v in all_data.items():
-        if (query in k or 
+        k_clean = k.replace("_", " ").replace("-", " ")
+        if (query in k or query_clean in k_clean or
             query in v.get("short_name", "").lower() or 
+            query_clean in v.get("short_name", "").lower() or
             query in v.get("country", "").lower() or 
             query in v.get("official_name", "").lower()):
             return k

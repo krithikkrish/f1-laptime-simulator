@@ -732,7 +732,7 @@ def create_individual_speed_figure(
     sim_telem: LapTelemetry,
     ref_df: Optional[pd.DataFrame] = None,
     track: Optional[Track] = None,
-    driver_label: str = "Real 2024 Pole Lap",
+    driver_label: str = "Real 2025 Pole Lap",
     scrub_dist: Optional[float] = None
 ) -> go.Figure:
     """Dedicated Speed Comparison chart with its own separate legend."""

@@ -75,7 +75,7 @@ class OpenF1Client:
         return []
 
 
-    def get_meetings(self, year: int = 2024) -> List[Dict[str, Any]]:
+    def get_meetings(self, year: int = 2025) -> List[Dict[str, Any]]:
         """Retrieves all 24 Grand Prix meetings on the calendar for a given championship year."""
         meetings = self._get("meetings", {"year": year}, f"meetings_{year}.json")
         gp_meetings = [m for m in meetings if "testing" not in m.get("meeting_name", "").lower() 
@@ -120,7 +120,7 @@ class OpenF1Client:
             return drivers[0]
         return {"name_acronym": f"#{driver_number}", "full_name": f"Driver #{driver_number}", "team_name": "F1 Team"}
 
-    def get_complete_lap_data(self, meeting_key: int, year: int = 2024) -> Tuple[Track, WeatherConditions, pd.DataFrame, Dict[str, Any]]:
+    def get_complete_lap_data(self, meeting_key: int, year: int = 2025) -> Tuple[Track, WeatherConditions, pd.DataFrame, Dict[str, Any]]:
         """
         Loads the complete, authentic real-world dataset for any chosen Grand Prix:
         1. Identifies the Qualifying session and pole position lap.

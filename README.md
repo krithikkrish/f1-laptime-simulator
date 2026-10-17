@@ -67,26 +67,39 @@
 
 ## 🚀 Quickstart Guide
 
-### 1. Launch the Interactive Workstation
+### 1. Launch the Ember Studio React Frontend (Recommended)
+
+The simulator features a **Ember Studio** web application with editorial typography (*Playfair Display*, *Source Sans 3*, *Fira Code*), warm terracotta and amber palette, one-click pill controls, and decongested modular charts with separate legend boxes:
 
 ```bash
 # Clone the repository
 git clone https://github.com/krithikkrish/f1-laptime-simulator.git
 cd f1-laptime-simulator
 
-# Install dependencies
+# Install Python backend dependencies
 pip install -r requirements.txt
 
-# Launch workstation
+# Start the simulation API server (also serves the Ember Studio frontend)
+python3 server.py 8000
+```
+Open **`http://localhost:8000`** in your browser!
+
+For frontend development mode with Vite hot-reloading:
+```bash
+cd frontend
+npm install
+npm run dev
+# Open http://localhost:5173
+```
+
+### 2. Alternative: Launch the Streamlit Workstation
+
+```bash
 streamlit run app.py
 ```
-Open **`http://localhost:8501`** in your browser:
-- Select from **all 24 Grand Prix circuits** on the FIA Formula 1 calendar.
-- Read plain-English race engineer debriefs and visual telemetry cards.
-- Scrub along the track using the synchronized slider to drive the **Cockpit Steering Wheel Gauge Cluster**.
-- Download official **MoTeC i2 Pro CSV/LDX** and **MATLAB `.mat`** files with one click.
+Open **`http://localhost:8501`** in your browser.
 
-### 2. Command-Line Simulation Runner
+### 3. Command-Line Simulation Runner
 
 Run simulations from terminal across any circuit:
 ```bash
@@ -100,18 +113,19 @@ python3 run_simulation.py --track monaco --setup monaco --export_motec
 python3 run_simulation.py --track monza --setup monza --export_motec
 ```
 
-### 3. Run the Automated Test Suite
+### 4. Run the Automated Test Suite
 
 ```bash
 python3 -m unittest discover tests/
 ```
-Runs 13 rigorous unit and integration tests covering:
+Runs 15 rigorous unit and integration tests covering:
 - Static and dynamic 4-wheel vertical load conservation ($F_z = M g + F_{\text{downforce}}$).
 - Pitch load transfer during braking and roll load transfer during cornering.
 - Sequential transmission gear selection, RPM bounds, and shift cut torque attenuation.
 - Homologated setup presets and parameter conversions.
 - MoTeC CSV header syntax and LDX beacon XML structure.
 - Full 0.01s Forward-Euler simulation convergence.
+- 2025 FIA World Championship pole benchmark telemetry verification.
 
 ---
 
@@ -119,13 +133,17 @@ Runs 13 rigorous unit and integration tests covering:
 
 ```
 f1-laptime-simulator/
-├── app.py                      # McLaren ATLAS / MoTeC i2 Pro Dark Telemetry Workstation
+├── frontend/                   # Ember Studio Web App (React 19, Vite, Playfair Display & Source Sans 3)
+│   ├── src/                    # App.jsx, index.css, modular components
+│   └── dist/                   # Production build bundled for high-performance serving
+├── server.py                   # High-performance Python REST API & Static Asset Server
+├── app.py                      # McLaren ATLAS / MoTeC i2 Pro Dark Telemetry Workstation (Streamlit)
 ├── requirements.txt            # Python dependencies (numpy, scipy, matplotlib, pandas, streamlit, plotly, fastf1)
 ├── run_simulation.py           # CLI simulation runner with 24-track selector and export flags
 ├── optimize_lap.py             # SciPy SLSQP hybrid deployment trajectory optimizer
 ├── data_cache/                 # Automatic local disk cache for OpenF1 API sessions
 ├── tests/
-│   └── test_f1_sim.py          # 13-test automated unit and integration suite
+│   └── test_f1_sim.py          # 15-test automated unit and integration suite
 ├── f1_sim/
 │   ├── __init__.py             # Package API exports
 │   ├── all_tracks.json         # Master 24-circuit 3D waypoints, elevation, weather & pole benchmarks

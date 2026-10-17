@@ -188,7 +188,7 @@ class TestSimulationEngine(unittest.TestCase):
 
 class TestPoleTelemetry(unittest.TestCase):
     def test_pole_benchmark_info(self):
-        """Metadata describes official 2024 Qualifying Q3 Pole Lap."""
+        """Metadata describes official 2025 Qualifying Q3 Pole Lap."""
         from f1_sim import get_pole_benchmark_info, get_real_pole_telemetry
         meta = {
             "pole_driver": "Lando NORRIS",
@@ -196,16 +196,16 @@ class TestPoleTelemetry(unittest.TestCase):
             "pole_lap_time": 87.597
         }
         info = get_pole_benchmark_info(meta)
-        self.assertEqual(info["championship_year"], 2024)
+        self.assertEqual(info["championship_year"], 2025)
         self.assertEqual(info["driver_name"], "Lando NORRIS")
         self.assertEqual(info["lap_time_str"], "1:27.597")
-        self.assertIn("Official Saturday Qualifying", info["session_type"])
+        self.assertIn("Official 2025 Saturday Qualifying", info["session_type"])
 
     def test_real_pole_telemetry_loading(self):
-        """Authentic 2024 telemetry loads with distance aligned to circuit."""
+        """Authentic 2025 telemetry loads with distance aligned to circuit."""
         from f1_sim import get_real_pole_telemetry
-        # Meeting 1234 = Miami GP 2024
-        df = get_real_pole_telemetry(meeting_key=1234, track_length=5713.9)
+        # Meeting 1259 = Miami GP 2025 (mapped to telemetry dataset)
+        df = get_real_pole_telemetry(meeting_key=1259, track_length=5713.9)
         self.assertIsNotNone(df)
         self.assertIn("speed", df.columns)
         self.assertIn("distance_m", df.columns)

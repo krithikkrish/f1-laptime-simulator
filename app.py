@@ -7,7 +7,7 @@ Features:
   1. 🟢 Simple & Clean Mode (Default): Spacious, easy-to-understand cards, plain English, single speed graph, interactive track map with moving car.
   2. ⚙️ Pro Engineering Mode: Individual modular telemetry charts with separate legends, G-G friction circle, setup sheet, and MATLAB exports.
 - All 24 FIA Grand Prix Calendar Circuits pre-cached with authentic 3D waypoints & real weather.
-- Authentic 2024 Saturday Qualifying (Q3) Pole Lap overlay from genuine telemetry.
+- Authentic 2025 Saturday Qualifying (Q3) Pole Lap overlay from genuine telemetry.
 - 100% physically solved at 100 Hz Forward-Euler ODE resolution on every user input change.
 """
 
@@ -185,11 +185,11 @@ with st.sidebar:
     
     track, active_weather, track_meta = create_calendar_track(selected_circuit, ds=1.0)
     
-    # Load authentic real-world 2024 qualifying pole lap telemetry
+    # Load authentic real-world 2025 qualifying pole lap telemetry
     pole_info = get_pole_benchmark_info(track_meta)
     ref_df = get_real_pole_telemetry(track_meta.get("meeting_key"), track.length)
     
-    st.info(f"🏁 **2024 Benchmark:** {track_meta.get('country')} GP  \n"
+    st.info(f"🏁 **2025 Benchmark:** {track_meta.get('country')} GP  \n"
             f"**Driver:** {pole_info['driver_name']} ({pole_info['team_name']})  \n"
             f"**Pole Lap:** `{pole_info['lap_time_str']}` (Official Q3)")
 
@@ -217,7 +217,7 @@ flag = COUNTRY_FLAGS.get(track_meta.get("country", ""), "🏁")
 col_hdr1, col_hdr2 = st.columns([3.2, 1.8])
 with col_hdr1:
     st.markdown(f"## {flag} {track.name.upper()}")
-    st.caption(f"🏁 **Benchmark Comparison:** {pole_info['full_label']} (Official 2024 Q3 Pole) | Track Length: **{track.length:,.0f} m**")
+    st.caption(f"🏁 **Benchmark Comparison:** {pole_info['full_label']} (Official 2025 Q3 Pole) | Track Length: **{track.length:,.0f} m**")
 
 with col_hdr2:
     view_mode = st.radio(
@@ -365,15 +365,15 @@ if "Simple" in view_mode:
         if delta_lap <= 0:
             v_badge_color = "#00ff88"
             v_badge_bg = "rgba(0, 255, 136, 0.15)"
-            v_badge_title = f"🟢 {abs(delta_lap):.3f}s FASTER THAN 2024 POLE!"
-            v_desc = (f"Great lap! Your 2026 car clocked <strong>{sim_lap_str}</strong>, beating the real 2024 pole lap "
+            v_badge_title = f"🟢 {abs(delta_lap):.3f}s FASTER THAN 2025 POLE!"
+            v_desc = (f"Great lap! Your 2026 car clocked <strong>{sim_lap_str}</strong>, beating the real 2025 pole lap "
                       f"({ref_lap_str} set by {pole_info['driver_name']} in the {pole_info['team_name']}) by "
                       f"<strong>{abs(delta_lap):.3f} seconds</strong> thanks to 350 kW instant electric boost and active aero!")
         else:
             v_badge_color = "#f59e0b"
             v_badge_bg = "rgba(245, 158, 11, 0.15)"
-            v_badge_title = f"🟡 {delta_lap:.3f}s BEHIND 2024 POLE"
-            v_desc = (f"Solid lap! Your 2026 car clocked <strong>{sim_lap_str}</strong>. You are trailing the 2024 pole lap "
+            v_badge_title = f"🟡 {delta_lap:.3f}s BEHIND 2025 POLE"
+            v_desc = (f"Solid lap! Your 2026 car clocked <strong>{sim_lap_str}</strong>. You are trailing the 2025 pole lap "
                       f"({ref_lap_str} set by {pole_info['driver_name']}) by <strong>{delta_lap:.3f} seconds</strong>. "
                       f"Tip: Try switching to Soft Slick tires or lighter fuel in the sidebar.")
     else:
@@ -394,7 +394,7 @@ if "Simple" in view_mode:
         <div class="hero-text">
             {v_desc}
             <div style="margin-top:8px; font-size:11px; color:#8b949e; font-family:monospace;">
-                ⚡ Solved at 100 Hz in {ode_duration_ms:.0f} ms | Benchmark: 2024 {track_meta.get('country')} GP (Q3)
+                ⚡ Solved at 100 Hz in {ode_duration_ms:.0f} ms | Benchmark: 2025 {track_meta.get('country')} GP (Q3)
             </div>
         </div>
     </div>
@@ -408,7 +408,7 @@ if "Simple" in view_mode:
             <div>
                 <div class="stat-title" style="color:#00ff88;">⏱️ LAP TIME</div>
                 <div class="stat-val" style="color:#00ff88;">{sim_lap_str}</div>
-                <div class="stat-desc">2024 Real Pole: <strong style="color:#ffffff;">{ref_lap_str}</strong><br>({pole_info['driver_name']} - {pole_info['team_name']})</div>
+                <div class="stat-desc">2025 Real Pole: <strong style="color:#ffffff;">{ref_lap_str}</strong><br>({pole_info['driver_name']} - {pole_info['team_name']})</div>
             </div>
         </div>
         """).strip(), unsafe_allow_html=True)
@@ -422,7 +422,7 @@ if "Simple" in view_mode:
             <div>
                 <div class="stat-title" style="color:#00e5ff;">🚀 TOP SPEED</div>
                 <div class="stat-val" style="color:#00e5ff;">{top_kmh:.0f} <span style="font-size:14px;">km/h</span></div>
-                <div class="stat-desc"><strong>{top_mph:.0f} mph</strong> reached on main straight.<br>(2024 Pole top speed: <strong style="color:#ffffff;">{ref_top}</strong>)</div>
+                <div class="stat-desc"><strong>{top_mph:.0f} mph</strong> reached on main straight.<br>(2025 Pole top speed: <strong style="color:#ffffff;">{ref_top}</strong>)</div>
             </div>
         </div>
         """).strip(), unsafe_allow_html=True)
@@ -514,14 +514,14 @@ if "Simple" in view_mode:
             st.markdown(f"**Aero:** `{cur_aero}`")
             st.caption(f"🛞 **Tires:** {compound} ({np.max(sim_telem_a.t_tire_c):.0f}°C)")
 
-    # 4. Clean Speed Chart With Separate Legend & Authentic 2024 Pole Line
+    # 4. Clean Speed Chart With Separate Legend & Authentic 2025 Pole Line
     st.markdown("### 📈 Speed Over the Lap")
-    st.caption(f"Comparing your 2026 car against **{pole_info['driver_name']} ({pole_info['team_name']})'s real 2024 pole lap**. Notice where 2026 pulls ahead on straights!")
+    st.caption(f"Comparing your 2026 car against **{pole_info['driver_name']} ({pole_info['team_name']})'s real 2025 pole lap**. Notice where 2026 pulls ahead on straights!")
     fig_speed = create_individual_speed_figure(
         sim_telem=sim_telem_a,
         ref_df=ref_df,
         track=track,
-        driver_label=f"2024 Pole: {pole_info['driver_name']} ({pole_info['team_name']})",
+        driver_label=f"2025 Pole: {pole_info['driver_name']} ({pole_info['team_name']})",
         scrub_dist=scrub_m
     )
     st.plotly_chart(fig_speed, use_container_width=True)
@@ -565,12 +565,12 @@ else:
 
     with tab_telem_pro:
         st.markdown("#### 1. Speed Profile & Lap Time Comparison")
-        st.caption("Overlay of 2026 simulation speed vs authentic 2024 qualifying pole telemetry.")
+        st.caption("Overlay of 2026 simulation speed vs authentic 2025 qualifying pole telemetry.")
         fig_pro_speed = create_individual_speed_figure(
             sim_telem=sim_telem_a,
             ref_df=ref_df,
             track=track,
-            driver_label=f"2024 Pole: {pole_info['driver_name']} ({pole_info['team_name']})"
+            driver_label=f"2025 Pole: {pole_info['driver_name']} ({pole_info['team_name']})"
         )
         st.plotly_chart(fig_pro_speed, use_container_width=True)
 

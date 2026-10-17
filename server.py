@@ -1,6 +1,6 @@
 """
 High-Performance REST API Server for the F1 2026 Lap-Time Simulator.
-Connects the transient vehicle dynamics ODE simulation engine and authentic 2024
+Connects the transient vehicle dynamics ODE simulation engine and authentic 2025
 qualifying pole telemetry directly to the modern React / Vite web frontend.
 """
 
@@ -98,7 +98,7 @@ class F1SimulationHandler(BaseHTTPRequestHandler):
                 "pole_driver": c.get("pole_driver", "Pole Sitter"),
                 "pole_lap_time": pole_time_raw,
                 "pole_lap_str": pole_str,
-                "benchmark_label": f"2024 Pole: {c.get('pole_driver', 'Pole Sitter')} ({pole_str})"
+                "benchmark_label": f"2025 Pole: {c.get('pole_driver', 'Pole Sitter')} ({pole_str})"
             })
         self.send_json({"tracks": tracks})
 
@@ -181,7 +181,7 @@ class F1SimulationHandler(BaseHTTPRequestHandler):
             )
             calc_time_ms = (time.perf_counter() - t0) * 1000.0
 
-            # 5. Delta vs Authentic 2024 Saturday Q3 Pole Lap
+            # 5. Delta vs Authentic 2025 Saturday Q3 Pole Lap
             ref_time = pole_info.get("lap_time_s")
             delta_s = (sim_telem.lap_time - ref_time) if ref_time else None
             sim_lap_str = format_lap_str(sim_telem.lap_time)
@@ -210,12 +210,12 @@ class F1SimulationHandler(BaseHTTPRequestHandler):
             rear_load_kg = np.interp(s_target, sim_telem.s, (f_rl + f_rr) / 9.81)
             downforce_kg = np.interp(s_target, sim_telem.s, sim_telem.f_downforce_n / 9.81)
 
-            # Authentic 2024 Pole Lap Speed Profile
+            # Authentic 2025 Pole Lap Speed Profile
             if ref_df is not None and "distance_m" in ref_df.columns and "speed" in ref_df.columns:
-                speed_2024 = np.interp(s_target, ref_df["distance_m"], ref_df["speed"])
+                speed_2025 = np.interp(s_target, ref_df["distance_m"], ref_df["speed"])
                 ref_top_kmh = float(ref_df["speed"].max())
             else:
-                speed_2024 = None
+                speed_2025 = None
                 ref_top_kmh = None
 
             # Subsampled Track Waypoints for 2D Canvas / SVG Map
@@ -231,7 +231,7 @@ class F1SimulationHandler(BaseHTTPRequestHandler):
                     "country": track_meta.get("country", "")
                 },
                 "pole_benchmark": {
-                    "year": 2024,
+                    "year": 2025,
                     "session": "Official Saturday Qualifying (Q3)",
                     "driver_name": pole_info["driver_name"],
                     "team_name": pole_info["team_name"],
@@ -254,7 +254,7 @@ class F1SimulationHandler(BaseHTTPRequestHandler):
                 "telemetry": {
                     "distance": [round(float(s), 1) for s in s_target],
                     "speed_2026": [round(float(v), 1) for v in speed_2026],
-                    "speed_2024": [round(float(v), 1) for v in speed_2024] if speed_2024 is not None else None,
+                    "speed_2025": [round(float(v), 1) for v in speed_2025] if speed_2025 is not None else None,
                     "throttle": [round(float(t), 1) for t in throttle],
                     "brake": [round(float(b), 1) for b in brake],
                     "gear": [int(g) for g in gear],
@@ -288,7 +288,7 @@ class F1SimulationHandler(BaseHTTPRequestHandler):
                 "<h2>🏎️ F1 2026 Simulation API Server is Active</h2>"
                 "<p>API Endpoints:</p>"
                 "<ul>"
-                "<li><code>GET /api/tracks</code> - All 24 calendar tracks with 2024 pole benchmarks</li>"
+                "<li><code>GET /api/tracks</code> - All 24 calendar tracks with 2025 pole benchmarks</li>"
                 "<li><code>POST /api/simulate</code> - 100 Hz Forward-Euler ODE solver & telemetry</li>"
                 "</ul>"
                 "<p>Vite Dev Server is running on port <strong>5173</strong>.</p>"
