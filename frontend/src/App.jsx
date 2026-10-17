@@ -37,7 +37,11 @@ import {
   Disc,
   Compass,
   CheckCircle2,
-  Flame
+  Flame,
+  Sun,
+  Moon,
+  Plus,
+  Minus
 } from 'lucide-react';
 import './index.css';
 
@@ -52,11 +56,16 @@ ChartJS.register(
   Filler
 );
 
-// High-fidelity natural Chart styling
-const createEmberChartOptions = (yTitle, yMin = undefined, yMax = undefined) => ({
+const SPEED_LEVELS = [0.25, 0.5, 1.0, 1.5, 2.0, 4.0, 8.0];
+
+// High-fidelity natural Chart styling with theme adaptability and full-track distance scaling
+const createEmberChartOptions = (yTitle, yMin = undefined, yMax = undefined, isDark = false) => ({
   responsive: true,
   maintainAspectRatio: false,
-  animation: { duration: 200 },
+  animation: { duration: 180 },
+  layout: {
+    padding: { top: 8, right: 14, bottom: 4, left: 4 }
+  },
   interaction: {
     mode: 'index',
     intersect: false,
@@ -67,7 +76,7 @@ const createEmberChartOptions = (yTitle, yMin = undefined, yMax = undefined) => 
       backgroundColor: '#1C1917',
       titleColor: '#FAFAF9',
       bodyColor: '#D6D3D1',
-      borderColor: '#78716C',
+      borderColor: isDark ? '#44403C' : '#78716C',
       borderWidth: 1,
       padding: 10,
       cornerRadius: 6,
@@ -77,32 +86,41 @@ const createEmberChartOptions = (yTitle, yMin = undefined, yMax = undefined) => 
   },
   scales: {
     x: {
-      grid: { color: '#F5F5F4' },
+      grid: {
+        color: isDark ? 'rgba(255, 255, 255, 0.06)' : '#F5F5F4'
+      },
       ticks: {
-        color: '#78716C',
+        color: isDark ? '#A8A29E' : '#78716C',
         font: { family: 'Fira Code', size: 11 },
-        maxTicksLimit: 9,
-        callback: (val) => `${Math.round(val)}m`
+        maxTicksLimit: 12,
+        callback: function(val) {
+          const lbl = this.getLabelForValue(val);
+          if (lbl === undefined || lbl === null || lbl === '') return '';
+          const m = Math.round(parseFloat(lbl));
+          return `${m.toLocaleString()} m`;
+        }
       },
       title: {
         display: true,
         text: 'Circuit Distance (Meters)',
-        color: '#78716C',
+        color: isDark ? '#A8A29E' : '#78716C',
         font: { family: 'Source Sans 3', size: 11.5, weight: '600' }
       }
     },
     y: {
       min: yMin,
       max: yMax,
-      grid: { color: '#F5F5F4' },
+      grid: {
+        color: isDark ? 'rgba(255, 255, 255, 0.06)' : '#F5F5F4'
+      },
       ticks: {
-        color: '#57534E',
+        color: isDark ? '#D6D3D1' : '#57534E',
         font: { family: 'Fira Code', size: 11 }
       },
       title: {
         display: true,
         text: yTitle,
-        color: '#1C1917',
+        color: isDark ? '#FAFAF9' : '#1C1917',
         font: { family: 'Source Sans 3', size: 11.5, weight: '600' }
       }
     }
@@ -128,6 +146,45 @@ export default function App() {
   const [compound, setCompound] = useState('Soft Slick');
   const [fuelKg, setFuelKg] = useState(25.0);
   const [setupMode, setSetupMode] = useState('balanced');
+
+  // Theme State (Dark / Light Mode)
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('ember_f1_theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  // Manual Animation Playback Speed Multiplier
+  const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('ember_f1_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const handleSpeedDown = () => {
+    const curIdx = SPEED_LEVELS.indexOf(playbackSpeed);
+    if (curIdx > 0) {
+      setPlaybackSpeed(SPEED_LEVELS[curIdx - 1]);
+    } else if (curIdx === -1) {
+      const smaller = SPEED_LEVELS.filter(s => s < playbackSpeed);
+      if (smaller.length) setPlaybackSpeed(smaller[smaller.length - 1]);
+    }
+  };
+
+  const handleSpeedUp = () => {
+    const curIdx = SPEED_LEVELS.indexOf(playbackSpeed);
+    if (curIdx !== -1 && curIdx < SPEED_LEVELS.length - 1) {
+      setPlaybackSpeed(SPEED_LEVELS[curIdx + 1]);
+    } else if (curIdx === -1) {
+      const larger = SPEED_LEVELS.filter(s => s > playbackSpeed);
+      if (larger.length) setPlaybackSpeed(larger[0]);
+    }
+  };
 
   // Advanced Engineering Calibration Levers
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -263,15 +320,16 @@ export default function App() {
       });
   };
 
-  // Drive car along circuit
+  // Drive car along circuit with manual speed multiplier
   useEffect(() => {
     if (!isPlaying || !simData?.track?.length_m) return;
     const trackLen = simData.track.length_m;
+    const advanceMeters = 28 * playbackSpeed;
     const interval = setInterval(() => {
-      setScrubDist(prev => (prev + 35) % trackLen);
+      setScrubDist(prev => (prev + advanceMeters) % trackLen);
     }, 40);
     return () => clearInterval(interval);
-  }, [isPlaying, simData]);
+  }, [isPlaying, simData, playbackSpeed]);
 
   const telem = simData?.telemetry;
   const trackLen = simData?.track?.length_m || 5000;
@@ -603,8 +661,20 @@ export default function App() {
             <strong>{activeTrackMeta?.country} Grand Prix ({activeTrackMeta?.short_name})</strong>
           </div>
 
-          <div className="topbar-badge">
-            <Award size={13} /> 2025 Championship Benchmark
+          <div className="topbar-actions">
+            <div className="topbar-badge">
+              <Award size={13} /> 2025 Championship Benchmark
+            </div>
+
+            <button
+              className="theme-toggle-btn"
+              onClick={toggleTheme}
+              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+              <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            </button>
           </div>
         </header>
 
@@ -1040,14 +1110,54 @@ export default function App() {
                   <span>{simData?.track?.name || 'Circuit'}</span>
                 </div>
 
-                <button
-                  className="ember-btn-primary"
-                  style={{ padding: '6px 12px', fontSize: 12.5 }}
-                  onClick={() => setIsPlaying(!isPlaying)}
-                >
-                  {isPlaying ? <Pause size={13} /> : <Play size={13} fill="currentColor" />}
-                  <span>{isPlaying ? 'Pause' : 'Drive Lap'}</span>
-                </button>
+                <div className="canvas-playback-group">
+                  {/* Manual Speed Up & Speed Down Simulation Controls */}
+                  <div className="playback-toolbar">
+                    <button
+                      className="playback-step-btn"
+                      onClick={handleSpeedDown}
+                      disabled={playbackSpeed <= SPEED_LEVELS[0]}
+                      title="Slow Down Simulation (Speed Down)"
+                      aria-label="Speed Down"
+                    >
+                      <Minus size={13} />
+                    </button>
+                    <span className="playback-rate-pill" title="Simulation Speed Multiplier">
+                      {playbackSpeed}x
+                    </span>
+                    <button
+                      className="playback-step-btn"
+                      onClick={handleSpeedUp}
+                      disabled={playbackSpeed >= SPEED_LEVELS[SPEED_LEVELS.length - 1]}
+                      title="Accelerate Simulation (Speed Up)"
+                      aria-label="Speed Up"
+                    >
+                      <Plus size={13} />
+                    </button>
+
+                    <div className="playback-presets">
+                      {[0.5, 1.0, 2.0, 4.0].map(s => (
+                        <button
+                          key={s}
+                          className={`playback-preset-chip ${playbackSpeed === s ? 'active' : ''}`}
+                          onClick={() => setPlaybackSpeed(s)}
+                          title={`Set speed to ${s}x`}
+                        >
+                          {s}x
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    className="ember-btn-primary"
+                    style={{ padding: '6px 14px', fontSize: 12.5 }}
+                    onClick={() => setIsPlaying(!isPlaying)}
+                  >
+                    {isPlaying ? <Pause size={13} /> : <Play size={13} fill="currentColor" />}
+                    <span>{isPlaying ? 'Pause' : 'Drive Lap'}</span>
+                  </button>
+                </div>
               </div>
 
               <div className="track-svg-box">
@@ -1056,7 +1166,7 @@ export default function App() {
                     <path
                       d={mapSvgData.pathStr}
                       fill="none"
-                      stroke="#E7E5E4"
+                      stroke={theme === 'dark' ? '#292524' : '#E7E5E4'}
                       strokeWidth="24"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -1064,7 +1174,7 @@ export default function App() {
                     <path
                       d={mapSvgData.pathStr}
                       fill="none"
-                      stroke="#FAFAF9"
+                      stroke={theme === 'dark' ? '#1C1917' : '#FAFAF9'}
                       strokeWidth="16"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -1072,7 +1182,7 @@ export default function App() {
                     <path
                       d={mapSvgData.pathStr}
                       fill="none"
-                      stroke="#C2410C"
+                      stroke="var(--primary)"
                       strokeWidth="2.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -1080,8 +1190,8 @@ export default function App() {
 
                     {mapSvgData.carPos && (
                       <g transform={`translate(${mapSvgData.carPos.x}, ${mapSvgData.carPos.y})`}>
-                        <circle r="16" fill="rgba(194, 65, 12, 0.2)" />
-                        <circle r="8" fill="#C2410C" stroke="#FFFFFF" strokeWidth="2" />
+                        <circle r="16" fill="rgba(194, 65, 12, 0.25)" />
+                        <circle r="8" fill="var(--primary)" stroke="var(--surface)" strokeWidth="2" />
                       </g>
                     )}
                   </svg>
@@ -1340,7 +1450,7 @@ export default function App() {
               </div>
 
               <div className="chart-viewport">
-                {speedChartData && <Line data={speedChartData} options={createEmberChartOptions('Speed (km/h)', 0, 370)} />}
+                {speedChartData && <Line data={speedChartData} options={createEmberChartOptions('Speed (km/h)', 0, 370, theme === 'dark')} />}
               </div>
             </div>
 
@@ -1373,7 +1483,7 @@ export default function App() {
               </div>
 
               <div className="chart-viewport">
-                {inputsChartData && <Line data={inputsChartData} options={createEmberChartOptions('Inputs (%)', 0, 105)} />}
+                {inputsChartData && <Line data={inputsChartData} options={createEmberChartOptions('Inputs (%)', 0, 105, theme === 'dark')} />}
               </div>
             </div>
 
@@ -1402,7 +1512,7 @@ export default function App() {
               </div>
 
               <div className="chart-viewport">
-                {powertrainChartData && <Line data={powertrainChartData} options={createEmberChartOptions('Power (kW)', -360, 420)} />}
+                {powertrainChartData && <Line data={powertrainChartData} options={createEmberChartOptions('Power (kW)', -360, 420, theme === 'dark')} />}
               </div>
             </div>
 
@@ -1431,7 +1541,7 @@ export default function App() {
               </div>
 
               <div className="chart-viewport">
-                {energyTireChartData && <Line data={energyTireChartData} options={createEmberChartOptions('Level (% / °C)', 0, 130)} />}
+                {energyTireChartData && <Line data={energyTireChartData} options={createEmberChartOptions('Level (% / °C)', 0, 130, theme === 'dark')} />}
               </div>
             </div>
 
@@ -1464,59 +1574,7 @@ export default function App() {
               </div>
 
               <div className="chart-viewport">
-                {loadChartData && <Line data={loadChartData} options={createEmberChartOptions('Vertical Load (kg)', 0, undefined)} />}
-              </div>
-            </div>
-          </div>
-
-          {/* Educational Technical Spread (Natural editorial columns, unboxed) */}
-          <div className="editorial-technical-spread">
-            <h3 className="technical-spread-title">
-              2026 Technical Regulations Engineering Principles
-            </h3>
-            <p className="section-desc">
-              The 2026 Formula 1 regulations introduce the most comprehensive powertrain and aerodynamic overhaul in championship history.
-            </p>
-
-            <div className="technical-columns-grid">
-              <div className="technical-column">
-                <div className="column-header">
-                  <Cpu size={16} color="var(--primary)" />
-                  <span>50/50 Power Parity</span>
-                </div>
-                <p className="column-body">
-                  The electric MGU-K output nearly triples from 120 kW to 350 kW (~470 hp), matching the 400 kW (~536 hp) turbocharged 1.6L V6 running on 100% sustainable advanced fuels.
-                </p>
-              </div>
-
-              <div className="technical-column">
-                <div className="column-header">
-                  <Wind size={16} color="#0284C7" />
-                  <span>Active Aerodynamics</span>
-                </div>
-                <p className="column-body">
-                  Replacing DRS, movable front and rear wings switch automatically between high-downforce Z-Mode through corners and ultra-low drag X-Mode on high-speed straights.
-                </p>
-              </div>
-
-              <div className="technical-column">
-                <div className="column-header">
-                  <TrendingDown size={16} color="var(--warning)" />
-                  <span>Velocity Tapering</span>
-                </div>
-                <p className="column-body">
-                  To conserve the 4.0 MJ per lap battery quota, maximum 350 kW electrical boost is delivered on corner exit up to 290 km/h, tapering linearly to 0 kW at 345 km/h.
-                </p>
-              </div>
-
-              <div className="technical-column">
-                <div className="column-header">
-                  <BatteryCharging size={16} color="var(--success)" />
-                  <span>High-Rate Harvesting</span>
-                </div>
-                <p className="column-body">
-                  Heavy braking events recover up to 350 kW through rear-axle regeneration, providing the energy needed to power subsequent corner exit deployments without conventional friction pad wear.
-                </p>
+                {loadChartData && <Line data={loadChartData} options={createEmberChartOptions('Vertical Load (kg)', 0, undefined, theme === 'dark')} />}
               </div>
             </div>
           </div>
