@@ -514,11 +514,15 @@ engine_a.dual_track.k_roll_r = k_arb_r * 400.0
 engine_a.dual_track.aero_balance_f = aero_bal / 100.0
 engine_a.dual_track.bbw_base_front_pct = bbw_bias / 100.0
 
+# Run Simulation for Setup A dynamically based on live user inputs
+import time
+t_solver_start = time.perf_counter()
 sim_telem_a: LapTelemetry = engine_a.run_transient_simulation(
     track=track,
     initial_soc=soc_init / 100.0,
     weather=active_weather
 )
+sim_time_ms = (time.perf_counter() - t_solver_start) * 1000.0
 
 # Run Simulation for Setup B if enabled
 sim_telem_b = None
@@ -549,6 +553,19 @@ st.markdown(f"""
             <span class="status-badge" style="background:#00e5ff; color:#000; font-weight:800;">8-SPEED TRANSMISSION</span>
             <span class="status-badge" style="background:#e10600; color:#fff; font-weight:800;">100 Hz ODE</span>
         </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Live dynamic ODE solver feedback badge
+st.markdown(f"""
+<div style="background: rgba(0, 255, 136, 0.07); border: 1px solid rgba(0, 255, 136, 0.4); border-radius: 6px; padding: 8px 14px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <span style="color:#00ff88; font-weight:800; font-size:12px;">⚡ LIVE 100 Hz TRANSIENT DYNAMICS ENGINE:</span>
+        <span style="color:#e0e0e0; font-size:12px;"> Re-solved {len(sim_telem_a.time):,} simulation time-steps dynamically in <strong>{sim_time_ms:.0f} ms</strong> based on your active inputs!</span>
+    </div>
+    <div style="font-family: monospace; font-size: 11px; color: #00ff88; font-weight: 700;">
+        PICE: {params_a.p_ice_max/1e3:.0f}kW | PMGU: {params_a.p_mguk_deploy_max/1e3:.0f}kW | Mass: {params_a.total_mass:.0f}kg | Fuel: {params_a.fuel_mass:.0f}kg
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -969,16 +986,16 @@ with tab_export:
     scipy.io.savemat(mat_buf, mat_dict)
     mat_bytes = mat_buf.getvalue()
 
-    col_m1, col_m2, col_m3 = st.columns(3)
+    col_m1, col_m2, col_m3, col_m4 = st.columns(4)
     with col_m1:
         st.download_button(
-            label="🏎️ Download MoTeC i2 Pro Telemetry (.csv)",
+            label="🏎️ Download MoTeC i2 Pro (.csv)",
             data=motec_csv_str,
             file_name=f"f1_2026_{track.name.split()[0].lower()}_motec.csv",
             mime="text/csv",
             use_container_width=True
         )
-        st.caption("Official MoTeC i2 Pro 100 Hz CSV with channel units.")
+        st.caption("Official MoTeC i2 Pro 100 Hz CSV.")
     with col_m2:
         st.download_button(
             label="🚩 Download MoTeC Beacons (.ldx)",
@@ -987,7 +1004,7 @@ with tab_export:
             mime="application/xml",
             use_container_width=True
         )
-        st.caption("Companion LDX beacon markers for MoTeC track mapping.")
+        st.caption("Companion LDX beacon markers.")
     with col_m3:
         st.download_button(
             label="💻 Download MATLAB Workspace (.mat)",
@@ -997,3 +1014,13 @@ with tab_export:
             use_container_width=True
         )
         st.caption("Full workspace format for MATLAB R2026a.")
+    with col_m4:
+        html_telem = fig_telem.to_html(include_plotlyjs="cdn")
+        st.download_button(
+            label="🌐 Download Interactive HTML (.html)",
+            data=html_telem,
+            file_name=f"f1_2026_{track.name.split()[0].lower()}_interactive.html",
+            mime="text/html",
+            use_container_width=True
+        )
+        st.caption("Standalone interactive vector dashboard.")

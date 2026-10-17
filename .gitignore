@@ -21,6 +21,7 @@ output/*.csv
 output/*.mat
 output/*.ldx
 output/*.png
+output/*.html
 !output/.gitkeep
 
 # Data cache (master datasets bundled in f1_sim/all_tracks.json)
